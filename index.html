@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Resizer & Embed Web App</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 80vh;
+            gap: 20px; /* Spacing between the two buttons */
+        }
+
+        /* --- Main Launch Buttons --- */
+        .launch-btn {
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: background 0.2s ease, transform 0.1s ease;
+            width: 280px;
+            text-align: center;
+        }
+        .btn-blue { background-color: #2563eb; }
+        .btn-blue:hover { background-color: #1d4ed8; }
+        
+        .btn-purple { background-color: #7c3aed; }
+        .btn-purple:hover { background-color: #6d28d9; }
+
+        .launch-btn:active { transform: scale(0.98); }
+
+        /* --- Modal Backdrop Overlay --- */
+        .modal-overlay {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        /* --- Standard Modal Box Container --- */
+        .modal-container {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            width: 460px;
+            position: relative;
+            animation: fadeIn 0.25s ease-out;
+        }
+
+        /* --- Large Layout Modal Container (For Iframe Viewport) --- */
+        .modal-container-large {
+            background: white;
+            padding: 40px 20px 20px 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            width: 90%;
+            max-width: 1200px;
+            height: 85vh;
+            position: relative;
+            animation: fadeIn 0.25s ease-out;
+            box-sizing: border-box;
+        }
+
+        /* Standard responsive iframe element container wrapper */
+        .iframe-wrapper {
+            width: 100%;
+            height: 100%;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #cbd5e1;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Close window button (X) */
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #94a3b8;
+            cursor: pointer;
+            border: none;
+            background: none;
+            z-index: 1010;
+        }
+        .close-modal:hover {
+            color: #334155;
+        }
+
+        /* --- Inside Tool UI Layout styles --- */
+        #drop-zone {
+            border: 3px dashed #cbd5e1;
+            background-color: #f8fafc;
+            border-radius: 6px;
+            padding: 40px 20px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 16px;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+        #drop-zone.hover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+            color: #1d4ed8;
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .btn:hover { background-color: #2563eb; }
+        .btn:disabled { background-color: #94a3b8; cursor: not-allowed; }
+        
+        .folder-section {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #334155;
+        }
+        input[type="text"] {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 14px;
+            background-color: #f1f5f9;
+        }
+        #status {
+            font-size: 14px;
+            color: #475569;
+            line-height: 1.5;
+            white-space: pre-line;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 15px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+<button class="launch-btn btn-blue" id="open-resizer-btn">Photo Resizer</button>
+<button class="launch-btn btn-purple" id="open-iframe-btn">Home Platform CSV Conversion Tool</button>
+
+<div class="modal-overlay" id="resizer-modal">
+    <div class="modal-container">
+        <button class="close-modal" id="close-resizer-btn">&times;</button>
+        
+        <div id="drop-zone">
+            DRAG & DROP PHOTOS HERE<br><br>
+            <span style="font-size: 13px; font-weight: normal;">(Supports .jpg, .jpeg, .png)</span>
+        </div>
+
+        <input type="file" id="file-input" multiple accept="image/jpeg, image/png" style="display: none;">
+        <button class="btn" id="select-btn">CLICK HERE TO SELECT FILES</button>
+
+        <div class="folder-section">
+            <label for="folder-path">ZIP Internal Folder / File Prefix:</label>
+            <input type="text" id="folder-path" placeholder="e.g., Photos_Resized">
+        </div>
+
+        <div id="status">Ready. Select files or drop them above to begin.</div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="iframe-modal">
+    <div class="modal-container-large">
+        <button class="close-modal" id="close-iframe-btn">&times;</button>
+        <div class="iframe-wrapper">
+            <iframe src="https://onboarded-alpha.vercel.app/" title="External Site Viewport"></iframe>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Modal Elements Configuration Map ---
+    const resizerModal = document.getElementById('resizer-modal');
+    const iframeModal = document.getElementById('iframe-modal');
+
+    const openResizerBtn = document.getElementById('open-resizer-btn');
+    const closeResizerBtn = document.getElementById('close-resizer-btn');
+
+    const openIframeBtn = document.getElementById('open-iframe-btn');
+    const closeIframeBtn = document.getElementById('close-iframe-btn');
+
+    // Open Actions
+    openResizerBtn.addEventListener('click', () => resizerModal.style.display = 'flex');
+    openIframeBtn.addEventListener('click', () => iframeModal.style.display = 'flex');
+
+    // Close Actions
+    closeResizerBtn.addEventListener('click', () => resizerModal.style.display = 'none');
+    closeIframeBtn.addEventListener('click', () => iframeModal.style.display = 'none');
+
+    // Universal Background Click-to-Close handler fallback 
+    window.addEventListener('click', (e) => {
+        if (e.target === resizerModal) resizerModal.style.display = 'none';
+        if (e.target === iframeModal) iframeModal.style.display = 'none';
+    });
+
+    // --- Core Image Resizer Script Logic ---
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const selectBtn = document.getElementById('select-btn');
+    const folderInput = document.getElementById('folder-path');
+    const statusDiv = document.getElementById('status');
+
+    const TARGET_MIN_DIM = 1500;
+    const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+
+    const savedFolder = localStorage.getItem('photo_resizer_folder');
+    folderInput.value = savedFolder ? savedFolder : 'Photos_Resized';
+
+    folderInput.addEventListener('input', () => {
+        localStorage.setItem('photo_resizer_folder', folderInput.value);
+    });
+
+    selectBtn.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('hover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('hover'));
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('hover');
+        if (e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files);
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) handleFiles(e.target.files);
+    });
+
+    async function handleFiles(files) {
+        const validFiles = Array.from(files).filter(f => f.type.match('image/jpeg') || f.type.match('image/png'));
+        
+        if (validFiles.length === 0) {
+            statusDiv.innerText = "No valid .jpg, .jpeg, or .png image formats detected.";
+            return;
+        }
+
+        selectBtn.disabled = true;
+        const cleanPrefix = folderInput.value.replace(/[^a-zA-Z0-9_\-]/g, '') || 'Photos_Resized';
+        const processedImages = [];
+
+        for (let i = 0; i < validFiles.length; i++) {
+            let file = validFiles[i];
+            statusDiv.innerText = `Processing image [${i + 1}/${validFiles.length}]: ${file.name}...`;
+
+            try {
+                const img = await loadImage(file);
+                let width = img.width;
+                let height = img.height;
+                let newWidth = width;
+                let newHeight = height;
+                let needsProcessing = false;
+
+                const minDim = Math.min(width, height);
+                if (minDim < TARGET_MIN_DIM) {
+                    const scale = TARGET_MIN_DIM / minDim;
+                    newWidth = Math.round(width * scale);
+                    newHeight = Math.round(height * scale);
+                    needsProcessing = true;
+                }
+
+                if (file.size >= MAX_FILE_SIZE) {
+                    needsProcessing = true;
+                }
+
+                let finalBlob;
+
+                if (needsProcessing) {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = newWidth;
+                    canvas.height = newHeight;
+                    const ctx = canvas.getContext('2d');
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+                    let quality = 0.95;
+                    do {
+                        finalBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+                        if (finalBlob.size < MAX_FILE_SIZE || quality <= 0.4) break;
+                        quality -= 0.1;
+                    } while (quality >= 0.4);
+                } else {
+                    finalBlob = file;
+                }
+
+                processedImages.push({ name: file.name, blob: finalBlob });
+
+            } catch (err) {
+                statusDiv.innerText = `Error processing ${file.name}: ${err.message}`;
+                selectBtn.disabled = false;
+                return;
+            }
+        }
+
+        if (processedImages.length === 1) {
+            statusDiv.innerText = "Downloading processed image...";
+            const targetName = cleanPrefix ? `${cleanPrefix}_${processedImages[0].name}` : processedImages[0].name;
+            triggerDownload(processedImages[0].blob, targetName);
+            statusDiv.innerText = `Done! Successfully downloaded "${targetName}".`;
+        } else {
+            statusDiv.innerText = "Compiling image batch into ZIP archive...\n(This might take a second for large files)";
+            
+            const zip = new JSZip();
+            const imgFolder = zip.folder(cleanPrefix);
+            
+            processedImages.forEach(imgData => {
+                imgFolder.file(imgData.name, imgData.blob);
+            });
+
+            const zipContent = await zip.generateAsync({ type: "blob" });
+            triggerDownload(zipContent, `${cleanPrefix}.zip`);
+            
+            statusDiv.innerText = `Done! All ${processedImages.length} images compiled and downloaded inside "${cleanPrefix}.zip".`;
+        }
+        
+        selectBtn.disabled = false;
+    }
+
+    function loadImage(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => reject(new Error("Failed to parse image file."));
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function triggerDownload(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+</script>
+
+</body>
+</html>
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Resizer Pro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            width: 460px;
+        }
+        #drop-zone {
+            border: 3px dashed #cbd5e1;
+            background-color: #f8fafc;
+            border-radius: 6px;
+            padding: 40px 20px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 16px;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 15px;
+        }
+        #drop-zone.hover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+            color: #1d4ed8;
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .btn:hover { background-color: #2563eb; }
+        .btn:disabled { background-color: #94a3b8; cursor: not-allowed; }
+        
+        .folder-section {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #334155;
+        }
+        input[type="text"] {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 14px;
+            background-color: #f1f5f9;
+        }
+        #status {
+            font-size: 14px;
+            color: #475569;
+            line-height: 1.5;
+            white-space: pre-line;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="drop-zone">
+        DRAG & DROP PHOTOS HERE<br><br>
+        <span style="font-size: 13px; font-weight: normal;">(Supports .jpg, .jpeg, .png)</span>
+    </div>
+
+    <input type="file" id="file-input" multiple accept="image/jpeg, image/png" style="display: none;">
+    <button class="btn" id="select-btn">CLICK HERE TO SELECT FILES</button>
+
+    <div class="folder-section">
+        <label id="folder-label" for="folder-path">ZIP Internal Folder / File Prefix:</label>
+        <input type="text" id="folder-path" placeholder="e.g., Photos_Resized">
+    </div>
+
+    <div id="status">Ready. Select files or drop them above to begin.</div>
+</div>
+
+<script>
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const selectBtn = document.getElementById('select-btn');
+    const folderInput = document.getElementById('folder-path');
+    const statusDiv = document.getElementById('status');
+
+    const TARGET_MIN_DIM = 1500;
+    const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+
+    // Load Saved Preference
+    const savedFolder = localStorage.getItem('photo_resizer_folder');
+    folderInput.value = savedFolder ? savedFolder : 'Photos_Resized';
+
+    folderInput.addEventListener('input', () => {
+        localStorage.setItem('photo_resizer_folder', folderInput.value);
+    });
+
+    selectBtn.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('hover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('hover'));
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('hover');
+        if (e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files);
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) handleFiles(e.target.files);
+    });
+
+    async function handleFiles(files) {
+        // Filter out non-image files first to get an accurate count
+        const validFiles = Array.from(files).filter(f => f.type.match('image/jpeg') || f.type.match('image/png'));
+        
+        if (validFiles.length === 0) {
+            statusDiv.innerText = "No valid .jpg, .jpeg, or .png image formats detected.";
+            return;
+        }
+
+        selectBtn.disabled = true;
+        const cleanPrefix = folderInput.value.replace(/[^a-zA-Z0-9_\-]/g, '') || 'Photos_Resized';
+        
+        // Array to store processed blobs for the batch step
+        const processedImages = [];
+
+        for (let i = 0; i < validFiles.length; i++) {
+            let file = validFiles[i];
+            statusDiv.innerText = `Processing image [${i + 1}/${validFiles.length}]: ${file.name}...`;
+
+            try {
+                const img = await loadImage(file);
+                let width = img.width;
+                let height = img.height;
+                let newWidth = width;
+                let newHeight = height;
+                let needsProcessing = false;
+
+                const minDim = Math.min(width, height);
+                if (minDim < TARGET_MIN_DIM) {
+                    const scale = TARGET_MIN_DIM / minDim;
+                    newWidth = Math.round(width * scale);
+                    newHeight = Math.round(height * scale);
+                    needsProcessing = true;
+                }
+
+                if (file.size >= MAX_FILE_SIZE) {
+                    needsProcessing = true;
+                }
+
+                let finalBlob;
+
+                if (needsProcessing) {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = newWidth;
+                    canvas.height = newHeight;
+                    const ctx = canvas.getContext('2d');
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+                    let quality = 0.95;
+                    do {
+                        finalBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+                        if (finalBlob.size < MAX_FILE_SIZE || quality <= 0.4) break;
+                        quality -= 0.1;
+                    } while (quality >= 0.4);
+                } else {
+                    finalBlob = file;
+                }
+
+                processedImages.push({ name: file.name, blob: finalBlob });
+
+            } catch (err) {
+                statusDiv.innerText = `Error processing ${file.name}: ${err.message}`;
+                selectBtn.disabled = false;
+                return;
+            }
+        }
+
+        // --- Handle Output Packaging ---
+        if (processedImages.length === 1) {
+            // SINGLE FILE: Skip zip, download straight away
+            statusDiv.innerText = "Downloading processed image...";
+            const targetName = cleanPrefix ? `${cleanPrefix}_${processedImages[0].name}` : processedImages[0].name;
+            triggerDownload(processedImages[0].blob, targetName);
+            statusDiv.innerText = `Done! Successfully downloaded "${targetName}".`;
+        } else {
+            // MULTIPLE FILES: Compile into a ZIP archive
+            statusDiv.innerText = "Compiling image batch into ZIP archive...\n(This might take a second for large files)";
+            
+            const zip = new JSZip();
+            const imgFolder = zip.folder(cleanPrefix);
+            
+            processedImages.forEach(imgData => {
+                imgFolder.file(imgData.name, imgData.blob);
+            });
+
+            const zipContent = await zip.generateAsync({ type: "blob" });
+            triggerDownload(zipContent, `${cleanPrefix}.zip`);
+            
+            statusDiv.innerText = `Done! All ${processedImages.length} images compiled and downloaded inside "${cleanPrefix}.zip".`;
+        }
+        
+        selectBtn.disabled = false;
+    }
+
+    function loadImage(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => reject(new Error("Failed to parse image file."));
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function triggerDownload(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+</script>
+
+</body>
+</html> -->
