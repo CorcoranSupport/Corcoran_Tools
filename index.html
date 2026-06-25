@@ -16,7 +16,7 @@
             align-items: center;
             justify-content: center;
             min-height: 80vh;
-            gap: 20px; /* Spacing between the two buttons */
+            gap: 20px; /* Spacing between the buttons */
         }
 
         /* --- Main Launch Buttons --- */
@@ -30,7 +30,7 @@
             cursor: pointer;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             transition: background 0.2s ease, transform 0.1s ease;
-            width: 280px;
+            width: 320px;
             text-align: center;
         }
         .btn-blue { background-color: #2563eb; }
@@ -38,6 +38,9 @@
         
         .btn-purple { background-color: #7c3aed; }
         .btn-purple:hover { background-color: #6d28d9; }
+
+        .btn-teal { background-color: #0d9488; }
+        .btn-teal:hover { background-color: #0f766e; }
 
         .launch-btn:active { transform: scale(0.98); }
 
@@ -188,6 +191,7 @@
 
 <button class="launch-btn btn-blue" id="open-resizer-btn">Photo Resizer</button>
 <button class="launch-btn btn-purple" id="open-iframe-btn">Home Platform CSV Conversion Tool</button>
+<button class="launch-btn btn-teal" id="open-vcf-btn">VCF Convert Tool</button>
 
 <div class="modal-overlay" id="resizer-modal">
     <div class="modal-container">
@@ -214,15 +218,25 @@
     <div class="modal-container-large">
         <button class="close-modal" id="close-iframe-btn">&times;</button>
         <div class="iframe-wrapper">
-            <iframe src="https://onboarded-alpha.vercel.app/" title="External Site Viewport"></iframe>
+            <iframe src="https://onboarded-alpha.vercel.app/" title="Home Platform CSV Tool"></iframe>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="vcf-modal">
+    <div class="modal-container-large">
+        <button class="close-modal" id="close-vcf-btn">&times;</button>
+        <div class="iframe-wrapper">
+            <iframe src="https://pages.uoregon.edu/caspages/vcfconvert/" title="VCF Convert Tool Viewport"></iframe>
         </div>
     </div>
 </div>
 
 <script>
-    // --- Modal Elements Configuration Map ---
+    // --- Modals Layout Configuration Map ---
     const resizerModal = document.getElementById('resizer-modal');
     const iframeModal = document.getElementById('iframe-modal');
+    const vcfModal = document.getElementById('vcf-modal');
 
     const openResizerBtn = document.getElementById('open-resizer-btn');
     const closeResizerBtn = document.getElementById('close-resizer-btn');
@@ -230,18 +244,24 @@
     const openIframeBtn = document.getElementById('open-iframe-btn');
     const closeIframeBtn = document.getElementById('close-iframe-btn');
 
-    // Open Actions
+    const openVcfBtn = document.getElementById('open-vcf-btn');
+    const closeVcfBtn = document.getElementById('close-vcf-btn');
+
+    // Display Trigger Mappings
     openResizerBtn.addEventListener('click', () => resizerModal.style.display = 'flex');
     openIframeBtn.addEventListener('click', () => iframeModal.style.display = 'flex');
+    openVcfBtn.addEventListener('click', () => vcfModal.style.display = 'flex');
 
-    // Close Actions
+    // Dismissal Action Mappings
     closeResizerBtn.addEventListener('click', () => resizerModal.style.display = 'none');
     closeIframeBtn.addEventListener('click', () => iframeModal.style.display = 'none');
+    closeVcfBtn.addEventListener('click', () => vcfModal.style.display = 'none');
 
-    // Universal Background Click-to-Close handler fallback 
+    // Backdrop overlay universal escape close engine
     window.addEventListener('click', (e) => {
         if (e.target === resizerModal) resizerModal.style.display = 'none';
         if (e.target === iframeModal) iframeModal.style.display = 'none';
+        if (e.target === vcfModal) vcfModal.style.display = 'none';
     });
 
     // --- Core Image Resizer Script Logic ---
