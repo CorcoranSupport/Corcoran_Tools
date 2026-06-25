@@ -199,10 +199,10 @@
         
         <div id="drop-zone">
             DRAG & DROP PHOTOS HERE<br><br>
-            <span style="font-size: 13px; font-weight: normal;">(Supports .jpg, .jpeg, .png)</span>
+            <span style="font-size: 13px; font-weight: normal;">(Supports .jpg, .jpeg, .png, .webp)</span>
         </div>
 
-        <input type="file" id="file-input" multiple accept="image/jpeg, image/png" style="display: none;">
+        <input type="file" id="file-input" multiple accept="image/jpeg, image/png, image/webp" style="display: none;">
         <button class="btn" id="select-btn">CLICK HERE TO SELECT FILES</button>
 
         <div class="folder-section">
@@ -297,10 +297,15 @@
     });
 
     async function handleFiles(files) {
-        const validFiles = Array.from(files).filter(f => f.type.match('image/jpeg') || f.type.match('image/png'));
+        // Updated file filter to accept webp formats
+        const validFiles = Array.from(files).filter(f => 
+            f.type.match('image/jpeg') || 
+            f.type.match('image/png') || 
+            f.type.match('image/webp')
+        );
         
         if (validFiles.length === 0) {
-            statusDiv.innerText = "No valid .jpg, .jpeg, or .png image formats detected.";
+            statusDiv.innerText = "No valid .jpg, .jpeg, .png, or .webp image formats detected.";
             return;
         }
 
@@ -318,7 +323,10 @@
                 let height = img.height;
                 let newWidth = width;
                 let newHeight = height;
-                let needsProcessing = false;
+                
+                // Force canvas rebuild if file is webp to achieve .jpg conversion
+                const isWebp = file.type.match('image/webp');
+                let needsProcessing = isWebp; 
 
                 const minDim = Math.min(width, height);
                 if (minDim < TARGET_MIN_DIM) {
@@ -333,6 +341,14 @@
                 }
 
                 let finalBlob;
+                // Swap target filename extension to .jpg if it was webp
+                let targetFileName = file.name;
+                if (isWebp) {
+                    targetFileName = targetFileName.replace(/\.webp$/i, '.jpg');
+                    if (!targetFileName.toLowerCase().endsWith('.jpg')) {
+                        targetFileName += '.jpg';
+                    }
+                }
 
                 if (needsProcessing) {
                     const canvas = document.createElement('canvas');
@@ -353,7 +369,7 @@
                     finalBlob = file;
                 }
 
-                processedImages.push({ name: file.name, blob: finalBlob });
+                processedImages.push({ name: targetFileName, blob: finalBlob });
 
             } catch (err) {
                 statusDiv.innerText = `Error processing ${file.name}: ${err.message}`;
