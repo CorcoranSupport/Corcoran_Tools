@@ -3,95 +3,244 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Corcoran Tools</title>
+    <title>Corcoran Tools Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/heic2any/0.0.4/heic2any.min.js"></script>
     <style>
+        :root {
+            --bg-primary: #f8fafc;
+            --panel-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            
+            /* Accent Colors */
+            --accent-blue: #2563eb;
+            --accent-purple: #7c3aed;
+            --accent-teal: #0d9488;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f6f9;
+            background-color: var(--bg-primary);
+            color: var(--text-main);
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
+        }
+
+        /* --- Top Navigation Header --- */
+        .header {
+            background-color: var(--panel-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 15px 40px;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr; /* Split into 3 equal sections for perfect centering */
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 900;
+        }
+
+        .logo-container {
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .logo-container img {
+            height: 32px;
+            display: block;
+        }
+
+        /* --- Header Shortcut Centered Container --- */
+        .header-center {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .header-shortcut {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent-blue);
+            text-decoration: none;
+            padding: 6px 16px;
+            border: 1px solid var(--accent-blue);
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .header-shortcut:hover {
+            background-color: var(--accent-blue);
+            color: white;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 25px;
+        }
+
+        .header-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        /* --- Dashboard Grid Hub --- */
+        .dashboard-container {
+            max-width: 1200px;
+            width: 100%;
+            margin: 40px auto;
+            padding: 0 20px;
+            box-sizing: border-box;
+            flex-grow: 1;
+        }
+
+        .dashboard-intro {
+            margin-bottom: 30px;
+        }
+
+        .dashboard-intro h1 {
+            margin: 0 0 8px 0;
+            font-size: 28px;
+            color: var(--text-main);
+        }
+
+        .dashboard-intro p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 16px;
+        }
+
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+        }
+
+        /* --- Dashboard Tool Cards --- */
+        .tool-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -2px rgba(0,0,0,0.04);
+        }
+
+        .card-meta {
+            margin-bottom: 24px;
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 80vh;
-            gap: 20px; /* Spacing between the buttons */
-        }
-
-        /* --- Main Launch Buttons --- */
-        .launch-btn {
+            margin-bottom: 20px;
             color: white;
-            border: none;
-            padding: 15px 30px;
-            font-size: 16px;
+            font-size: 22px;
             font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: background 0.2s ease, transform 0.1s ease;
-            width: 320px;
-            text-align: center;
         }
-        .btn-blue { background-color: #2563eb; }
-        .btn-blue:hover { background-color: #1d4ed8; }
-        
-        .btn-purple { background-color: #7c3aed; }
-        .btn-purple:hover { background-color: #6d28d9; }
 
-        .btn-teal { background-color: #0d9488; }
-        .btn-teal:hover { background-color: #0f766e; }
+        .icon-blue { background-color: var(--accent-blue); }
+        .icon-purple { background-color: var(--accent-purple); }
+        .icon-teal { background-color: var(--accent-teal); }
 
-        .launch-btn:active { transform: scale(0.98); }
+        .card-meta h3 {
+            margin: 0 0 10px 0;
+            font-size: 20px;
+            font-weight: 600;
+        }
 
-        /* --- Modal Backdrop Overlay --- */
+        .card-meta p {
+            margin: 0;
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .launch-action-btn {
+            width: 100%;
+            border: none;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .launch-action-btn:hover {
+            opacity: 0.9;
+        }
+
+        /* --- Modal Backdrop Overlays --- */
         .modal-overlay {
-            display: none; /* Hidden by default */
+            display: none;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+            background-color: rgba(15, 23, 42, 0.6);
             backdrop-filter: blur(4px);
             justify-content: center;
             align-items: center;
             z-index: 1000;
         }
 
-        /* --- Standard Modal Box Container --- */
+        /* --- Standard Resizer Container Box --- */
         .modal-container {
             background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            width: 460px;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            width: 480px;
             position: relative;
             animation: fadeIn 0.25s ease-out;
         }
 
-        /* --- Large Layout Modal Container (For Iframe Viewport) --- */
+        /* --- Viewport Iframe Container Box --- */
         .modal-container-large {
             background: white;
-            padding: 40px 20px 20px 20px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            width: 90%;
-            max-width: 1200px;
-            height: 85vh;
+            padding: 45px 20px 20px 20px;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            width: 92%;
+            max-width: 1280px;
+            height: 88vh;
             position: relative;
             animation: fadeIn 0.25s ease-out;
             box-sizing: border-box;
         }
 
-        /* Standard responsive iframe element container wrapper */
         .iframe-wrapper {
             width: 100%;
             height: 100%;
-            border-radius: 6px;
+            border-radius: 8px;
             overflow: hidden;
-            border: 1px solid #cbd5e1;
+            border: 1px solid var(--border-color);
         }
 
         iframe {
@@ -100,59 +249,58 @@
             border: none;
         }
 
-        /* Close window button (X) */
         .close-modal {
             position: absolute;
-            top: 10px;
+            top: 12px;
             right: 20px;
-            font-size: 28px;
-            font-weight: bold;
-            color: #94a3b8;
+            font-size: 32px;
+            font-weight: normal;
+            color: var(--text-muted);
             cursor: pointer;
             border: none;
             background: none;
             z-index: 1010;
+            line-height: 1;
         }
         .close-modal:hover {
-            color: #334155;
+            color: var(--text-main);
         }
 
-        /* --- Inside Tool UI Layout styles --- */
+        /* --- Tool Internal Component UI Styles --- */
         #drop-zone {
-            border: 3px dashed #cbd5e1;
+            border: 2px dashed #cbd5e1;
             background-color: #f8fafc;
-            border-radius: 6px;
+            border-radius: 8px;
             padding: 40px 20px;
             text-align: center;
-            font-weight: bold;
-            font-size: 16px;
+            font-weight: 600;
+            font-size: 15px;
             color: #64748b;
             cursor: pointer;
             transition: all 0.2s ease;
-            margin-top: 15px;
-            margin-bottom: 15px;
+            margin: 15px 0;
         }
         #drop-zone.hover {
-            border-color: #3b82f6;
+            border-color: var(--accent-blue);
             background-color: #eff6ff;
-            color: #1d4ed8;
+            color: #1e40af;
         }
         .btn {
             display: block;
             width: 100%;
-            background-color: #3b82f6;
+            background-color: var(--accent-blue);
             color: white;
             border: none;
             padding: 12px;
-            font-weight: bold;
+            font-weight: 600;
             border-radius: 6px;
             cursor: pointer;
             font-size: 14px;
             text-align: center;
             margin-bottom: 20px;
         }
-        .btn:hover { background-color: #2563eb; }
-        .btn:disabled { background-color: #94a3b8; cursor: not-allowed; }
+        .btn:hover { background-color: #1d4ed8; }
+        .btn:disabled { background-color: #cbd5e1; cursor: not-allowed; }
         
         .folder-section {
             margin-bottom: 20px;
@@ -160,39 +308,85 @@
         label {
             display: block;
             font-size: 13px;
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #334155;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text-main);
         }
         input[type="text"] {
             width: 100%;
             box-sizing: border-box;
-            padding: 8px;
-            border: 1px solid #cbd5e1;
+            padding: 10px;
+            border: 1px solid var(--border-color);
             border-radius: 6px;
             font-size: 14px;
             background-color: #f1f5f9;
         }
         #status {
-            font-size: 14px;
-            color: #475569;
-            line-height: 1.5;
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.6;
             white-space: pre-line;
-            border-top: 1px solid #e2e8f0;
+            border-top: 1px solid var(--border-color);
             padding-top: 15px;
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.95); }
+            from { opacity: 0; transform: scale(0.97); }
             to { opacity: 1; transform: scale(1); }
         }
     </style>
 </head>
 <body>
 
-<button class="launch-btn btn-blue" id="open-resizer-btn">Photo Resizer</button>
-<button class="launch-btn btn-purple" id="open-iframe-btn">Home Platform CSV Conversion Tool</button>
-<button class="launch-btn btn-teal" id="open-vcf-btn">VCF Convert Tool</button>
+<header class="header">
+    <div class="logo-container">
+        <img src="https://media-cloud.corcoranlabs.com/static-images/corcoran-logo.svg?w=384&q=75" alt="Corcoran Logo">
+    </div>
+    <div class="header-center">
+        <a href="https://www.homeplatform.com/app/home/" target="_blank" rel="noopener noreferrer" class="header-shortcut">Go to Home Platform ↗</a>
+    </div>
+    <div class="header-right">
+        <div class="header-title">Corcoran Tools Hub</div>
+    </div>
+</header>
+
+<main class="dashboard-container">
+    <div class="dashboard-intro">
+        <h1>Welcome to Corcoran Tools Hub</h1>
+        <p>Select a utility below to open the tool</p>
+    </div>
+
+    <div class="tool-grid">
+        <div class="tool-card">
+            <div class="card-meta">
+                <div class="card-icon icon-blue">📷</div>
+                <h3>Photo Resizer</h3>
+                <p>Resize photos to supported resolution and file size(under 20MB) needed for Listing Data Entry. Automatically transcodes incorrect media file types to .jpg formats.</p>
+                <br>
+                <p>Supported file types: (.jpg, .jpeg, .png, .webp, .heic)</p>
+            </div>
+            <button class="launch-action-btn icon-blue" id="open-resizer-btn">Open Photo Resizer</button>
+        </div>
+
+        <div class="tool-card">
+            <div class="card-meta">
+                <div class="card-icon icon-purple">📊</div>
+                <h3>Home Platform CSV Tool</h3>
+                <p>Process, realign, and convert CSV file to required data structure required to import into Home Platform CRM</p>
+            </div>
+            <button class="launch-action-btn icon-purple" id="open-iframe-btn">Open Home Platform CSV Tool</button>
+        </div>
+
+        <div class="tool-card">
+            <div class="card-meta">
+                <div class="card-icon icon-teal">📇</div>
+                <h3>VCard Convert Tool</h3>
+                <p>Convert vCard(VCF) to CSV Format</p>
+            </div>
+            <button class="launch-action-btn icon-teal" id="open-vcf-btn">Open VCard Convert Tool</button>
+        </div>
+    </div>
+</main>
 
 <div class="modal-overlay" id="resizer-modal">
     <div class="modal-container">
@@ -200,7 +394,7 @@
         
         <div id="drop-zone">
             DRAG & DROP PHOTOS HERE<br><br>
-            <span style="font-size: 13px; font-weight: normal;">(Supports .jpg, .jpeg, .png, .webp, .heic)</span>
+            <span style="font-size: 13px; font-weight: normal; color: var(--text-muted);">(Supports .jpg, .jpeg, .png, .webp, .heic)</span>
         </div>
 
         <input type="file" id="file-input" multiple accept="image/jpeg, image/png, image/webp, .heic" style="display: none;">
@@ -298,7 +492,6 @@
     });
 
     async function handleFiles(files) {
-        // Updated extension regex validation filter to accept .heic formats
         const validFiles = Array.from(files).filter(f => 
             f.type.match('image/jpeg') || 
             f.type.match('image/png') || 
@@ -324,16 +517,13 @@
                 let targetFileName = file.name;
                 let imageToLoad = file;
 
-                // 1. Core structural interception if it's a HEIC file
                 if (isHeic) {
                     statusDiv.innerText = `Converting HEIC format to raw canvas [${i + 1}/${validFiles.length}]: ${file.name}...`;
-                    // Run client side conversion library
                     const convertedBlob = await heic2any({
                         blob: file,
                         toType: "image/jpeg",
                         quality: 0.95
                     });
-                    // Reassign context target data structures
                     imageToLoad = convertedBlob;
                     targetFileName = targetFileName.replace(/\.heic$/i, '.jpg');
                     if (!targetFileName.toLowerCase().endsWith('.jpg')) {
@@ -348,7 +538,6 @@
                 let newHeight = height;
                 
                 const isWebp = file.type.match('image/webp');
-                // Force engine canvas draw if the source was originally webp or heic
                 let needsProcessing = isWebp || isHeic; 
 
                 if (isWebp) {
