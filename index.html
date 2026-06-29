@@ -181,7 +181,8 @@
             line-height: 1.5;
         }
 
-        .launch-action-btn {
+        .launch-action-btn, .launch-link-btn {
+            display: block;
             width: 100%;
             border: none;
             padding: 12px 20px;
@@ -193,9 +194,10 @@
             transition: opacity 0.2s ease;
             text-align: center;
             box-sizing: border-box;
+            text-decoration: none;
         }
 
-        .launch-action-btn:hover {
+        .launch-action-btn:hover, .launch-link-btn:hover {
             opacity: 0.9;
         }
 
@@ -417,7 +419,7 @@
                 <h3>VCard Convert Tool</h3>
                 <p>Convert vCard(VCF) to CSV Format</p>
             </div>
-            <button class="launch-action-btn icon-teal" id="open-vcf-btn">Open VCard Convert Tool</button>
+            <a href="https://tribulant.com/vcard-csv/" target="_blank" rel="noopener noreferrer" class="launch-link-btn icon-teal">Open VCard Convert Tool ↗</a>
         </div>
     </div>
 </main>
@@ -452,20 +454,10 @@
     </div>
 </div>
 
-<div class="modal-overlay" id="vcf-modal">
-    <div class="modal-container-large">
-        <button class="close-modal" id="close-vcf-btn">&times;</button>
-        <div class="iframe-wrapper">
-            <iframe src="https://pages.uoregon.edu/caspages/vcfconvert/" title="VCF Convert Tool Viewport"></iframe>
-        </div>
-    </div>
-</div>
-
 <script>
     // --- Modals Layout Configuration Map ---
     const resizerModal = document.getElementById('resizer-modal');
     const iframeModal = document.getElementById('iframe-modal');
-    const vcfModal = document.getElementById('vcf-modal');
 
     const openResizerBtn = document.getElementById('open-resizer-btn');
     const closeResizerBtn = document.getElementById('close-resizer-btn');
@@ -473,24 +465,18 @@
     const openIframeBtn = document.getElementById('open-iframe-btn');
     const closeIframeBtn = document.getElementById('close-iframe-btn');
 
-    const openVcfBtn = document.getElementById('open-vcf-btn');
-    const closeVcfBtn = document.getElementById('close-vcf-btn');
-
     // Display Trigger Mappings
     openResizerBtn.addEventListener('click', () => resizerModal.style.display = 'flex');
     openIframeBtn.addEventListener('click', () => iframeModal.style.display = 'flex');
-    openVcfBtn.addEventListener('click', () => vcfModal.style.display = 'flex');
 
     // Dismissal Action Mappings
     closeResizerBtn.addEventListener('click', () => resizerModal.style.display = 'none');
     closeIframeBtn.addEventListener('click', () => iframeModal.style.display = 'none');
-    closeVcfBtn.addEventListener('click', () => vcfModal.style.display = 'none');
 
     // Backdrop overlay universal escape close engine
     window.addEventListener('click', (e) => {
         if (e.target === resizerModal) resizerModal.style.display = 'none';
         if (e.target === iframeModal) iframeModal.style.display = 'none';
-        if (e.target === vcfModal) vcfModal.style.display = 'none';
     });
 
     // --- Core Image Resizer Script Logic ---
