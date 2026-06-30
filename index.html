@@ -273,7 +273,7 @@
         }
 
         /* --- Tool Internal Component UI Styles --- */
-        #drop-zone {
+        #drop-zone, #vcard-drop-zone {
             border: 2px dashed #cbd5e1;
             background-color: #f8fafc;
             border-radius: 8px;
@@ -286,7 +286,7 @@
             transition: all 0.2s ease;
             margin: 15px 0;
         }
-        #drop-zone.hover {
+        #drop-zone.hover, #vcard-drop-zone.hover {
             border-color: var(--accent-blue);
             background-color: #eff6ff;
             color: #1e40af;
@@ -305,10 +305,12 @@
             text-align: center;
             margin-bottom: 20px;
         }
+        .btn.btn-teal { background-color: var(--accent-teal); }
+        .btn.btn-teal:hover { background-color: #0f766e; }
         .btn:hover { background-color: #1d4ed8; }
         .btn:disabled { background-color: #cbd5e1; cursor: not-allowed; }
         
-        .folder-section {
+        .folder-section, .form-group {
             margin-bottom: 20px;
         }
         label {
@@ -318,7 +320,7 @@
             margin-bottom: 6px;
             color: var(--text-main);
         }
-        input[type="text"] {
+        input[type="text"], select {
             width: 100%;
             box-sizing: border-box;
             padding: 10px;
@@ -327,13 +329,22 @@
             font-size: 14px;
             background-color: #f1f5f9;
         }
-        #status {
+        #status, #vcard-status {
             font-size: 13px;
             color: var(--text-muted);
             line-height: 1.6;
             white-space: pre-line;
             border-top: 1px solid var(--border-color);
             padding-top: 15px;
+        }
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: normal;
+            font-size: 14px;
+            margin-bottom: 12px;
+            cursor: pointer;
         }
 
         /* --- Mobile Response Architecture --- */
@@ -417,9 +428,9 @@
             <div class="card-meta">
                 <div class="card-icon icon-teal">📇</div>
                 <h3>VCard Convert Tool</h3>
-                <p>Convert vCard(VCF) to CSV Format</p>
+                <p>Convert vCard (.VCF) files securely in your browser to a fully formatted CSV layout while preserving all contact fields.</p>
             </div>
-            <a href="https://tribulant.com/vcard-csv/" target="_blank" rel="noopener noreferrer" class="launch-link-btn icon-teal">Open VCard Convert Tool ↗</a>
+            <button class="launch-action-btn icon-teal" id="open-vcard-btn">Open VCard Convert Tool</button>
         </div>
     </div>
 </main>
@@ -454,10 +465,49 @@
     </div>
 </div>
 
+<div class="modal-overlay" id="vcard-modal">
+    <div class="modal-container">
+        <button class="close-modal" id="close-vcard-btn">&times;</button>
+        <h2 style="margin-top:0; font-size: 20px; color: var(--text-main);">VCard to CSV Converter</h2>
+        
+        <div id="vcard-drop-zone">
+            DRAG & DROP .VCF FILE HERE<br><br>
+            <span style="font-size: 13px; font-weight: normal; color: var(--text-muted);">(Supports any standard vCard file)</span>
+        </div>
+
+        <input type="file" id="vcard-file-input" accept=".vcf,text/vcard" style="display: none;">
+        <button class="btn btn-teal" id="vcard-select-btn">SELECT VCARD FILE</button>
+
+        <div class="form-group" style="margin-bottom: 15px;">
+            <label>Output Delimiter / Format:</label>
+            <select id="vcard-delimiter">
+                <option value=",">Comma (,)</option>
+                <option value=";">Semicolon (;)</option>
+                <option value="&#9;">Tab</option>
+            </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 25px;">
+            <label class="checkbox-label">
+                <input type="checkbox" id="vcard-headers-chk" checked>
+                Add CSV column headers row (Name, etc.)
+            </label>
+            <label class="checkbox-label">
+                <input type="checkbox" id="vcard-email-filter-chk">
+                Filter: Only include contacts with email addresses
+            </label>
+        </div>
+
+        <button class="btn btn-teal" id="vcard-convert-btn" disabled>CONVERT & DOWNLOAD</button>
+        <div id="vcard-status">Ready. Select a .vcf file to begin.</div>
+    </div>
+</div>
+
 <script>
     // --- Modals Layout Configuration Map ---
     const resizerModal = document.getElementById('resizer-modal');
     const iframeModal = document.getElementById('iframe-modal');
+    const vcardModal = document.getElementById('vcard-modal');
 
     const openResizerBtn = document.getElementById('open-resizer-btn');
     const closeResizerBtn = document.getElementById('close-resizer-btn');
@@ -465,19 +515,300 @@
     const openIframeBtn = document.getElementById('open-iframe-btn');
     const closeIframeBtn = document.getElementById('close-iframe-btn');
 
+    const openVcardBtn = document.getElementById('open-vcard-btn');
+    const closeVcardBtn = document.getElementById('close-vcard-btn');
+
     // Display Trigger Mappings
     openResizerBtn.addEventListener('click', () => resizerModal.style.display = 'flex');
     openIframeBtn.addEventListener('click', () => iframeModal.style.display = 'flex');
+    openVcardBtn.addEventListener('click', () => vcardModal.style.display = 'flex');
 
     // Dismissal Action Mappings
     closeResizerBtn.addEventListener('click', () => resizerModal.style.display = 'none');
     closeIframeBtn.addEventListener('click', () => iframeModal.style.display = 'none');
+    closeVcardBtn.addEventListener('click', () => {
+        vcardModal.style.display = 'none';
+        vcardFileInput.value = '';
+        activeVcardFile = null;
+        vcardConvertBtn.disabled = true;
+        document.getElementById('vcard-status').innerText = 'Ready. Select a .vcf file to begin.';
+    });
 
     // Backdrop overlay universal escape close engine
     window.addEventListener('click', (e) => {
         if (e.target === resizerModal) resizerModal.style.display = 'none';
         if (e.target === iframeModal) iframeModal.style.display = 'none';
+        if (e.target === vcardModal) vcardModal.style.display = 'none';
     });
+
+
+    // --- Core VCard to CSV Logic ---
+    const vcardDropZone = document.getElementById('vcard-drop-zone');
+    const vcardFileInput = document.getElementById('vcard-file-input');
+    const vcardSelectBtn = document.getElementById('vcard-select-btn');
+    const vcardConvertBtn = document.getElementById('vcard-convert-btn');
+    const vcardStatus = document.getElementById('vcard-status');
+    let activeVcardFile = null;
+
+    vcardSelectBtn.addEventListener('click', () => vcardFileInput.click());
+    vcardDropZone.addEventListener('click', () => vcardFileInput.click());
+
+    vcardDropZone.addEventListener('dragover', (e) => { e.preventDefault(); vcardDropZone.classList.add('hover'); });
+    vcardDropZone.addEventListener('dragleave', () => vcardDropZone.classList.remove('hover'));
+    vcardDropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        vcardDropZone.classList.remove('hover');
+        if (e.dataTransfer.files.length > 0) processVcardFileSelection(e.dataTransfer.files[0]);
+    });
+
+    vcardFileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) processVcardFileSelection(e.target.files[0]);
+    });
+
+    function processVcardFileSelection(file) {
+        if (!file.name.toLowerCase().endsWith('.vcf') && file.type !== 'text/vcard') {
+            vcardStatus.innerText = "Error: Please select a valid .vcf file.";
+            return;
+        }
+        activeVcardFile = file;
+        vcardStatus.innerText = `Selected: ${file.name}\nReady to convert!`;
+        vcardConvertBtn.disabled = false;
+    }
+
+    vcardConvertBtn.addEventListener('click', () => {
+        if (!activeVcardFile) return;
+        vcardStatus.innerText = "Parsing VCard file...";
+        vcardConvertBtn.disabled = true;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const content = e.target.result;
+                convertVcardToCSV(content);
+            } catch (err) {
+                vcardStatus.innerText = `Error parsing file: ${err.message}`;
+                vcardConvertBtn.disabled = false;
+            }
+        };
+        reader.readAsText(activeVcardFile);
+    });
+
+    function convertVcardToCSV(vcardText) {
+        // 1. Unfold lines (vCard allows multi-line property values with leading spaces/tabs)
+        let unfoldedLines = [];
+        const lines = vcardText.split(/\r?\n/);
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i];
+            if (line.startsWith(' ') || line.startsWith('\t')) {
+                if (unfoldedLines.length > 0) {
+                    unfoldedLines[unfoldedLines.length - 1] += line.substring(1);
+                }
+            } else {
+                unfoldedLines.push(line);
+            }
+        }
+
+        // Deep String Parsers to handle vcard internal escaped semicolons cleanly
+        function parseVcardArray(value) {
+            const parts = [];
+            let current = '';
+            for (let i = 0; i < value.length; i++) {
+                if (value[i] === '\\' && value[i+1] === ';') { current += ';'; i++; } 
+                else if (value[i] === '\\' && value[i+1] === ',') { current += ','; i++; } 
+                else if (value[i] === '\\' && (value[i+1] === 'n' || value[i+1] === 'N')) { current += '\n'; i++; } 
+                else if (value[i] === ';') { parts.push(current.trim()); current = ''; } 
+                else { current += value[i]; }
+            }
+            parts.push(current.trim());
+            return parts;
+        }
+
+        function unescapeVcardValue(value) {
+            let current = '';
+            for (let i = 0; i < value.length; i++) {
+                if (value[i] === '\\' && value[i+1] === ';') { current += ';'; i++; } 
+                else if (value[i] === '\\' && value[i+1] === ',') { current += ','; i++; } 
+                else if (value[i] === '\\' && (value[i+1] === 'n' || value[i+1] === 'N')) { current += '\n'; i++; } 
+                else { current += value[i]; }
+            }
+            return current.trim();
+        }
+
+        function cleanKey(rawKey) {
+            let key = rawKey.toUpperCase();
+            key = key.replace(/^ITEM\d+\./, ''); // remove item1., item2., etc
+            
+            let parts = key.split(';');
+            let base = parts[0];
+            
+            if (base === 'FN') return 'Display Name';
+            if (base === 'N') return 'N'; // Handle Name parsing separately
+            if (base === 'ORG') return 'Company';
+            if (base === 'TITLE') return 'Job Title';
+            if (base === 'NOTE') return 'Notes';
+            if (base === 'BDAY') return 'Birthday';
+            if (base === 'VERSION' || base === 'PRODID') return null; // Hide noise fields
+            
+            // Map nice Types for headers (e.g. CELL -> Cell)
+            let types = parts.slice(1).map(p => {
+                let kv = p.split('=');
+                let val = kv.length > 1 ? kv[1] : kv[0];
+                val = val.replace(/^X-/, ''); 
+                return val.charAt(0) + val.slice(1).toLowerCase(); 
+            }).filter(t => {
+                let tu = t.toUpperCase();
+                return tu !== 'PREF' && tu !== 'INTERNET' && tu !== 'VOICE' && tu !== 'ENCODING' && tu !== 'JPEG' && tu !== 'B';
+            });
+            
+            let typeStr = types.length > 0 ? ` (${types.join(', ')})` : '';
+            
+            if (base === 'TEL') return `Phone${typeStr}`;
+            if (base === 'EMAIL') return `Email${typeStr}`;
+            if (base === 'ADR') return `Address${typeStr}`;
+            if (base === 'URL') return `Website${typeStr}`;
+            if (base === 'IMPP' || base === 'X-SOCIALPROFILE') return `Social Profile${typeStr}`;
+            if (base === 'PHOTO') return `Photo`;
+            
+            // Generic fallback format for unknown custom tags
+            return base.charAt(0) + base.slice(1).toLowerCase() + typeStr;
+        }
+
+        // 2. Parse into contact objects
+        let contacts = [];
+        let currentContact = null;
+
+        unfoldedLines.forEach(line => {
+            if (line.trim() === '') return;
+            if (line.toUpperCase() === 'BEGIN:VCARD') {
+                currentContact = {};
+            } else if (line.toUpperCase() === 'END:VCARD') {
+                if (currentContact && Object.keys(currentContact).length > 0) {
+                    contacts.push(currentContact);
+                }
+                currentContact = null;
+            } else if (currentContact) {
+                const splitIndex = line.indexOf(':');
+                if (splitIndex > -1) {
+                    const rawKey = line.substring(0, splitIndex);
+                    let value = line.substring(splitIndex + 1);
+                    
+                    let key = cleanKey(rawKey);
+                    if (!key) return; 
+
+                    // Intelligently parse raw N (Name) variables to split the string and strip out the semicolons
+                    if (key === 'N') {
+                        const parts = parseVcardArray(value);
+                        if (parts[1]) currentContact['First Name'] = parts[1];
+                        if (parts[2]) currentContact['Middle Name'] = parts[2];
+                        if (parts[0]) currentContact['Last Name'] = parts[0];
+                        if (parts[3]) currentContact['Prefix'] = parts[3];
+                        if (parts[4]) currentContact['Suffix'] = parts[4];
+                        return;
+                    }
+                    
+                    // Cleanup addresses and companies by replacing semicolons with nice formatting
+                    if (key.startsWith('Address')) {
+                        const parts = parseVcardArray(value);
+                        value = parts.filter(p => p !== '').join(', ');
+                    } else if (key === 'Company') {
+                        const parts = parseVcardArray(value);
+                        value = parts.filter(p => p !== '').join(' - ');
+                    } else {
+                        value = unescapeVcardValue(value);
+                    }
+
+                    // Aggregate multiple entries of same key type using a pipe separator
+                    if (currentContact[key]) {
+                        if (!currentContact[key].includes(value)) {
+                            currentContact[key] += " | " + value;
+                        }
+                    } else {
+                        currentContact[key] = value;
+                    }
+                }
+            }
+        });
+
+        // 3. Apply Email Filter
+        const emailFilterChecked = document.getElementById('vcard-email-filter-chk').checked;
+        if (emailFilterChecked) {
+            contacts = contacts.filter(contact => {
+                return Object.keys(contact).some(key => key.toLowerCase().includes('email'));
+            });
+        }
+
+        if (contacts.length === 0) {
+            vcardStatus.innerText = "No contacts matched the filter or the file was empty.";
+            vcardConvertBtn.disabled = false;
+            return;
+        }
+
+        // 4. Extract unique keys and sort them so they are readable in the output
+        let keySet = new Set();
+        contacts.forEach(contact => {
+            Object.keys(contact).forEach(k => keySet.add(k));
+        });
+        
+        let allKeys = Array.from(keySet);
+        const sortedKeys = [];
+
+        function pushCategorizedKeys(categoryList) {
+            categoryList.forEach(pk => {
+                if (allKeys.includes(pk)) {
+                    sortedKeys.push(pk);
+                    allKeys = allKeys.filter(k => k !== pk);
+                }
+            });
+        }
+
+        // Determine column priorities
+        const namePriority = ['First Name', 'Middle Name', 'Last Name', 'Prefix', 'Suffix', 'Display Name'];
+        const corpPriority = ['Company', 'Job Title', 'Department'];
+        const emailKeys = allKeys.filter(k => k.toLowerCase().includes('email')).sort();
+        const phoneKeys = allKeys.filter(k => k.toLowerCase().includes('phone')).sort();
+        const addressKeys = allKeys.filter(k => k.toLowerCase().includes('address')).sort();
+
+        pushCategorizedKeys(namePriority);
+        pushCategorizedKeys(corpPriority);
+        pushCategorizedKeys(emailKeys);
+        pushCategorizedKeys(phoneKeys);
+        pushCategorizedKeys(addressKeys);
+        
+        // Push any remaining uncategorized auxiliary attributes to the back
+        sortedKeys.push(...allKeys.sort());
+        allKeys = sortedKeys;
+
+        // 5. Build the output text construct
+        const delimiter = document.getElementById('vcard-delimiter').value;
+        const includeHeaders = document.getElementById('vcard-headers-chk').checked;
+        
+        function escapeCSVValue(val) {
+            if (val === undefined || val === null) return '""';
+            let str = String(val);
+            str = str.replace(/"/g, '""'); // Escape double quotes
+            return `"${str}"`;
+        }
+
+        let csvString = "";
+        
+        if (includeHeaders) {
+            csvString += allKeys.map(escapeCSVValue).join(delimiter) + "\r\n";
+        }
+
+        contacts.forEach(contact => {
+            let row = allKeys.map(k => escapeCSVValue(contact[k] || "")).join(delimiter);
+            csvString += row + "\r\n";
+        });
+
+        // 6. Download Output File
+        const blob = new Blob(["\ufeff" + csvString], { type: 'text/csv;charset=utf-8;' });
+        const originalName = activeVcardFile.name.replace(/\.[^/.]+$/, "");
+        triggerDownload(blob, `${originalName}_converted.csv`);
+
+        vcardStatus.innerText = `Success! Converted ${contacts.length} contacts containing ${allKeys.length} unique column fields.`;
+        vcardConvertBtn.disabled = false;
+    }
+
 
     // --- Core Image Resizer Script Logic ---
     const dropZone = document.getElementById('drop-zone');
