@@ -6,7 +6,6 @@
     <title>Corcoran Tools Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/heic2any/0.0.4/heic2any.min.js"></script>
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         :root {
             --bg-primary: #f8fafc;
@@ -380,7 +379,7 @@
             font-size: 14px;
             background-color: #f1f5f9;
         }
-        #status, #vcard-status, #beamer-status {
+        #status, #vcard-status {
             font-size: 13px;
             color: var(--text-muted);
             line-height: 1.6;
@@ -488,15 +487,6 @@
             </div>
             <button class="launch-action-btn icon-teal" id="open-vcard-btn">Open VCard Convert Tool</button>
         </div>
-
-        <div class="tool-card">
-            <div class="card-meta">
-                <div class="card-icon icon-orange">📤</div>
-                <h3>Secure File Beamer</h3>
-                <p>Transfer files directly and securely to another person via a temporary P2P connection. Includes options for passwords and strict link expiration.</p>
-            </div>
-            <button class="launch-action-btn icon-orange" id="open-beamer-btn">Open File Beamer</button>
-        </div>
     </div>
 
     <div id="no-results-msg">
@@ -603,12 +593,10 @@
         }
     });
 
-
     // --- Modals Layout Configuration Map ---
     const resizerModal = document.getElementById('resizer-modal');
     const iframeModal = document.getElementById('iframe-modal');
     const vcardModal = document.getElementById('vcard-modal');
-    const beamerModal = document.getElementById('beamer-modal');
 
     const openResizerBtn = document.getElementById('open-resizer-btn');
     const closeResizerBtn = document.getElementById('close-resizer-btn');
@@ -619,14 +607,10 @@
     const openVcardBtn = document.getElementById('open-vcard-btn');
     const closeVcardBtn = document.getElementById('close-vcard-btn');
 
-    const openBeamerBtn = document.getElementById('open-beamer-btn');
-    const closeBeamerBtn = document.getElementById('close-beamer-btn');
-
     // Display Trigger Mappings
     openResizerBtn.addEventListener('click', () => resizerModal.style.display = 'flex');
     openIframeBtn.addEventListener('click', () => iframeModal.style.display = 'flex');
     openVcardBtn.addEventListener('click', () => vcardModal.style.display = 'flex');
-    openBeamerBtn.addEventListener('click', () => beamerModal.style.display = 'flex');
 
     // Dismissal Action Mappings
     closeResizerBtn.addEventListener('click', () => resizerModal.style.display = 'none');
@@ -638,19 +622,12 @@
         vcardConvertBtn.disabled = true;
         document.getElementById('vcard-status').innerText = 'Ready. Select a .vcf file to begin.';
     });
-    closeBeamerBtn.addEventListener('click', () => {
-        beamerModal.style.display = 'none';
-        if(window.location.hash) {
-            history.pushState("", document.title, window.location.pathname + window.location.search);
-        }
-    });
 
     // Backdrop overlay universal escape close engine
     window.addEventListener('click', (e) => {
         if (e.target === resizerModal) resizerModal.style.display = 'none';
         if (e.target === iframeModal) iframeModal.style.display = 'none';
         if (e.target === vcardModal) vcardModal.style.display = 'none';
-        if (e.target === beamerModal) beamerModal.style.display = 'none';
     });
 
 
