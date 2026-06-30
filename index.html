@@ -19,7 +19,7 @@
             --accent-blue: #2563eb;
             --accent-purple: #7c3aed;
             --accent-teal: #0d9488;
-            --accent-orange: #ea580c; /* Added for the new tool */
+            --accent-orange: #ea580c;
         }
 
         body {
@@ -109,7 +109,7 @@
         }
 
         .dashboard-intro {
-            margin-bottom: 30px;
+            margin-bottom: 25px;
         }
 
         .dashboard-intro h1 {
@@ -122,6 +122,51 @@
             margin: 0;
             color: var(--text-muted);
             font-size: 16px;
+        }
+
+        /* --- Search Bar Styles (Flexbox Fix) --- */
+        .search-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0 16px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .search-container:focus-within {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .search-icon {
+            font-size: 18px;
+            margin-right: 12px;
+            user-select: none;
+        }
+
+        .search-input {
+            width: 100%;
+            flex-grow: 1;
+            padding: 14px 0;
+            font-size: 16px;
+            border: none;
+            background-color: transparent;
+            color: var(--text-main);
+            outline: none;
+        }
+
+        #no-results-msg {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+            background: var(--panel-bg);
+            border-radius: 12px;
+            border: 1px dashed var(--border-color);
+            margin-top: 20px;
         }
 
         .tool-grid {
@@ -409,7 +454,12 @@
         <p>Select a utility below to open the tool</p>
     </div>
 
-    <div class="tool-grid">
+    <div class="search-container">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="tool-search" class="search-input" placeholder="Search for tools, features, or keywords...">
+    </div>
+
+    <div class="tool-grid" id="main-tool-grid">
         <div class="tool-card">
             <div class="card-meta">
                 <div class="card-icon icon-blue">📷</div>
@@ -447,6 +497,10 @@
             </div>
             <button class="launch-action-btn icon-orange" id="open-beamer-btn">Open File Beamer</button>
         </div>
+    </div>
+
+    <div id="no-results-msg">
+        No tools match your search criteria. Please try a different keyword.
     </div>
 </main>
 
@@ -573,6 +627,37 @@
 </div>
 
 <script>
+    // ==========================================================
+    // --- Dashboard Search Filter Logic ---
+    // ==========================================================
+    const searchInput = document.getElementById('tool-search');
+    const toolCards = document.querySelectorAll('.tool-card');
+    const noResultsMsg = document.getElementById('no-results-msg');
+
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        let visibleCount = 0;
+
+        toolCards.forEach(card => {
+            const titleText = card.querySelector('h3').innerText.toLowerCase();
+            const descText = card.querySelector('p').innerText.toLowerCase();
+            
+            if (titleText.includes(query) || descText.includes(query)) {
+                card.style.display = 'flex'; 
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        if (visibleCount === 0) {
+            noResultsMsg.style.display = 'block';
+        } else {
+            noResultsMsg.style.display = 'none';
+        }
+    });
+
+
     // --- Modals Layout Configuration Map ---
     const resizerModal = document.getElementById('resizer-modal');
     const iframeModal = document.getElementById('iframe-modal');
@@ -632,12 +717,10 @@
     const beamerIsReceiver = beamerPeerIdFromURL.length > 0;
     const BEAMER_CHUNK_SIZE = 64 * 1024; 
 
-    // UI Elements for Progress
     const beamerProgressWrapper = document.getElementById('beamer-progress-wrapper');
     const beamerProgressBar = document.getElementById('beamer-progress-bar');
     const beamerProgressText = document.getElementById('beamer-progress-text');
 
-    // Auto-open modal if hash exists (Receiver)
     if (beamerIsReceiver) {
         beamerModal.style.display = 'flex';
     }
@@ -675,7 +758,6 @@
       let secureConfig = {};
       let totalDownloads = 0;
 
-      // Toggle Date Input visibility
       expSelect.addEventListener('change', (e) => {
         if (e.target.value === 'date') document.getElementById('beamer-datetime-group').classList.remove('hidden');
         else document.getElementById('beamer-datetime-group').classList.add('hidden');
@@ -701,7 +783,6 @@
 
       beamerPeer.on('connection', (conn) => {
         conn.on('open', () => {
-          // 1. Check Expiration Criteria
           if (secureConfig.mode === 'once' && totalDownloads >= 1) {
             conn.send({ error: 'This link was a burn-after-reading link and has already been used.' });
             return setTimeout(() => conn.close(), 500);
@@ -710,15 +791,12 @@
             conn.send({ error: 'This link has expired based on the sender\'s time limit.' });
             return setTimeout(() => conn.close(), 500);
           }
-
-          // 2. Send Handshake to demand password (if set)
           conn.send({ type: 'handshake', requireAuth: secureConfig.password.length > 0 });
         });
 
         let offset = 0;
 
         conn.on('data', (data) => {
-          // 3. Verify Password
           if (data.type === 'auth') {
             if (secureConfig.password && data.password !== secureConfig.password) {
               conn.send({ error: 'Incorrect password. Access denied.' });
@@ -729,7 +807,6 @@
             conn.send({ type: 'metadata', name: fileToSend.name, mime: fileToSend.type, size: fileToSend.size });
           }
 
-          // 4. Handle Chunking (ACKs)
           if (data.type === 'ack') {
             if (offset < fileToSend.size) {
               const slice = fileToSend.slice(offset, offset + BEAMER_CHUNK_SIZE);
@@ -747,7 +824,6 @@
               totalDownloads++;
               offset = 0; 
               
-              // Disconnect peer entirely if burn after reading is enabled
               if (secureConfig.mode === 'once') {
                  setTimeout(() => beamerPeer.destroy(), 1000);
                  beamerStatusEl.innerText = "Transfer Complete! Link burned.";
@@ -764,6 +840,16 @@
       beamerStatusEl.innerText = "Connecting to sender...";
 
       const conn = beamerPeer.connect(senderId);
+      
+      conn.on('open', () => {
+          beamerStatusEl.innerText = "Connection established! Handshaking...";
+      });
+      
+      conn.on('error', (err) => {
+          beamerStatusEl.innerText = "Connection failed. The sender may have closed the tab or a firewall is blocking it.";
+          beamerStatusEl.style.color = "red";
+      });
+
       let incomingFileInfo = null;
       let receivedBuffers = [];
       let receivedSize = 0;
@@ -775,7 +861,6 @@
           return;
         }
 
-        // 1. Respond to Handshake (Password Prompt)
         if (data.type === 'handshake') {
           if (data.requireAuth) {
             const pwd = prompt("The sender requires a password to download this file:");
@@ -785,14 +870,12 @@
           }
         }
 
-        // 2. Receive Metadata
         if (data.type === 'metadata') {
           incomingFileInfo = data;
           beamerStatusEl.innerText = `Receiving: ${data.name}...`;
           conn.send({ type: 'ack' }); 
         }
 
-        // 3. Receive Chunks
         if (data.type === 'chunk') {
           receivedBuffers.push(data.data);
           receivedSize += data.data.byteLength;
@@ -800,7 +883,6 @@
           conn.send({ type: 'ack' }); 
         }
 
-        // 4. Assembly on EOF
         if (data.type === 'eof') {
           beamerStatusEl.innerText = "File verified and assembled!";
           beamerStatusEl.style.color = "green";
