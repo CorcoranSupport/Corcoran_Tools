@@ -6,6 +6,7 @@
     <title>Corcoran Tools Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/heic2any/0.0.4/heic2any.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         :root {
             --bg-primary: #f8fafc;
@@ -18,6 +19,7 @@
             --accent-blue: #2563eb;
             --accent-purple: #7c3aed;
             --accent-teal: #0d9488;
+            --accent-orange: #ea580c; /* Added for the new tool */
         }
 
         body {
@@ -37,7 +39,7 @@
             border-bottom: 1px solid var(--border-color);
             padding: 15px 40px;
             display: grid;
-            grid-template-columns: 1fr auto 1fr; /* Split into 3 equal sections for perfect centering */
+            grid-template-columns: 1fr auto 1fr;
             align-items: center;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             position: sticky;
@@ -57,7 +59,6 @@
             object-fit: contain;
         }
 
-        /* --- Header Shortcut Centered Container --- */
         .header-center {
             display: flex;
             justify-content: center;
@@ -167,6 +168,7 @@
         .icon-blue { background-color: var(--accent-blue); }
         .icon-purple { background-color: var(--accent-purple); }
         .icon-teal { background-color: var(--accent-teal); }
+        .icon-orange { background-color: var(--accent-orange); }
 
         .card-meta h3 {
             margin: 0 0 10px 0;
@@ -216,18 +218,18 @@
             z-index: 1000;
         }
 
-        /* --- Standard Resizer Container Box --- */
         .modal-container {
             background: white;
             padding: 30px;
             border-radius: 16px;
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
             width: 480px;
+            max-height: 90vh;
+            overflow-y: auto;
             position: relative;
             animation: fadeIn 0.25s ease-out;
         }
 
-        /* --- Viewport Iframe Container Box --- */
         .modal-container-large {
             background: white;
             padding: 45px 20px 20px 20px;
@@ -304,9 +306,13 @@
             font-size: 14px;
             text-align: center;
             margin-bottom: 20px;
+            box-sizing: border-box;
+            text-decoration: none;
         }
         .btn.btn-teal { background-color: var(--accent-teal); }
         .btn.btn-teal:hover { background-color: #0f766e; }
+        .btn.btn-orange { background-color: var(--accent-orange); }
+        .btn.btn-orange:hover { background-color: #c2410c; }
         .btn:hover { background-color: #1d4ed8; }
         .btn:disabled { background-color: #cbd5e1; cursor: not-allowed; }
         
@@ -320,7 +326,7 @@
             margin-bottom: 6px;
             color: var(--text-main);
         }
-        input[type="text"], select {
+        input[type="text"], input[type="password"], input[type="datetime-local"], select {
             width: 100%;
             box-sizing: border-box;
             padding: 10px;
@@ -329,7 +335,7 @@
             font-size: 14px;
             background-color: #f1f5f9;
         }
-        #status, #vcard-status {
+        #status, #vcard-status, #beamer-status {
             font-size: 13px;
             color: var(--text-muted);
             line-height: 1.6;
@@ -346,8 +352,8 @@
             margin-bottom: 12px;
             cursor: pointer;
         }
+        .hidden { display: none !important; }
 
-        /* --- Mobile Response Architecture --- */
         @media (max-width: 768px) {
             .header {
                 display: flex;
@@ -432,6 +438,15 @@
             </div>
             <button class="launch-action-btn icon-teal" id="open-vcard-btn">Open VCard Convert Tool</button>
         </div>
+
+        <div class="tool-card">
+            <div class="card-meta">
+                <div class="card-icon icon-orange">📤</div>
+                <h3>Secure File Beamer</h3>
+                <p>Transfer files directly and securely to another person via a temporary P2P connection. Includes options for passwords and strict link expiration.</p>
+            </div>
+            <button class="launch-action-btn icon-orange" id="open-beamer-btn">Open File Beamer</button>
+        </div>
     </div>
 </main>
 
@@ -503,11 +518,66 @@
     </div>
 </div>
 
+<div class="modal-overlay" id="beamer-modal">
+    <div class="modal-container">
+        <button class="close-modal" id="close-beamer-btn">&times;</button>
+        <h2 style="margin-top:0; font-size: 20px; color: var(--text-main);">Secure P2P File Beamer</h2>
+        <div id="beamer-status" style="margin: 15px 0; font-weight: bold; text-align: center; border-top: none; padding-top: 0; font-size: 16px;">Initializing connection...</div>
+
+        <div id="beamer-sender-ui" class="hidden">
+            <div class="form-group">
+                <label>1. Select File</label>
+                <input type="file" id="beamer-file-input" style="width: 100%; border: 1px solid var(--border-color); padding: 5px; border-radius: 4px; box-sizing: border-box; font-size: 14px;">
+            </div>
+
+            <div class="form-group">
+                <label>2. Password Protection (Optional)</label>
+                <input type="password" id="beamer-password-input" placeholder="Leave blank for no password">
+            </div>
+
+            <div class="form-group">
+                <label>3. Link Expiration</label>
+                <select id="beamer-expiration-select">
+                    <option value="never">Never (Valid while tab is open)</option>
+                    <option value="once">Burn after 1 download</option>
+                    <option value="date">Expire at specific date/time</option>
+                </select>
+            </div>
+
+            <div class="form-group hidden" id="beamer-datetime-group">
+                <label>Expiration Date & Time</label>
+                <input type="datetime-local" id="beamer-datetime-input">
+            </div>
+
+            <button class="btn btn-orange" id="beamer-generate-btn">Generate Secure Link</button>
+
+            <div id="beamer-share-link-container" style="display: none; margin: 20px 0; padding: 15px; background: #e9ecef; border-radius: 5px; word-break: break-all; text-align: center;">
+                <p style="margin-top: 0; font-size: 14px;">Send this link to the receiver. Keep this page open!</p>
+                <strong id="beamer-share-link" style="color: var(--accent-blue);"></strong>
+            </div>
+        </div>
+
+        <div id="beamer-receiver-ui" class="hidden">
+            <p style="text-align: center; color: var(--text-muted);">Waiting for secure connection to sender...</p>
+            <div id="beamer-download-container" class="hidden">
+                <p style="text-align: center; color: var(--accent-teal); font-weight: bold;">File verified and received securely!</p>
+                <a id="beamer-download-btn" class="btn btn-teal" download>Save File to Computer</a>
+            </div>
+        </div>
+
+        <div id="beamer-progress-wrapper" style="width: 100%; background: #e2e8f0; border-radius: 5px; margin-top: 20px; overflow: hidden; display: none;">
+            <div id="beamer-progress-bar" style="height: 12px; width: 0%; background: var(--accent-teal); transition: width 0.1s;"></div>
+        </div>
+        <div id="beamer-progress-text" style="text-align: center; margin-top: 8px; font-size: 13px; color: var(--text-muted);"></div>
+    </div>
+</div>
+
 <script>
     // --- Modals Layout Configuration Map ---
     const resizerModal = document.getElementById('resizer-modal');
     const iframeModal = document.getElementById('iframe-modal');
     const vcardModal = document.getElementById('vcard-modal');
+    const beamerModal = document.getElementById('beamer-modal');
 
     const openResizerBtn = document.getElementById('open-resizer-btn');
     const closeResizerBtn = document.getElementById('close-resizer-btn');
@@ -518,10 +588,14 @@
     const openVcardBtn = document.getElementById('open-vcard-btn');
     const closeVcardBtn = document.getElementById('close-vcard-btn');
 
+    const openBeamerBtn = document.getElementById('open-beamer-btn');
+    const closeBeamerBtn = document.getElementById('close-beamer-btn');
+
     // Display Trigger Mappings
     openResizerBtn.addEventListener('click', () => resizerModal.style.display = 'flex');
     openIframeBtn.addEventListener('click', () => iframeModal.style.display = 'flex');
     openVcardBtn.addEventListener('click', () => vcardModal.style.display = 'flex');
+    openBeamerBtn.addEventListener('click', () => beamerModal.style.display = 'flex');
 
     // Dismissal Action Mappings
     closeResizerBtn.addEventListener('click', () => resizerModal.style.display = 'none');
@@ -533,16 +607,227 @@
         vcardConvertBtn.disabled = true;
         document.getElementById('vcard-status').innerText = 'Ready. Select a .vcf file to begin.';
     });
+    closeBeamerBtn.addEventListener('click', () => {
+        beamerModal.style.display = 'none';
+        if(window.location.hash) {
+            history.pushState("", document.title, window.location.pathname + window.location.search);
+        }
+    });
 
     // Backdrop overlay universal escape close engine
     window.addEventListener('click', (e) => {
         if (e.target === resizerModal) resizerModal.style.display = 'none';
         if (e.target === iframeModal) iframeModal.style.display = 'none';
         if (e.target === vcardModal) vcardModal.style.display = 'none';
+        if (e.target === beamerModal) beamerModal.style.display = 'none';
     });
 
 
+    // ==========================================================
+    // --- Secure P2P File Beamer Logic ---
+    // ==========================================================
+    const beamerPeer = new Peer();
+    const beamerStatusEl = document.getElementById('beamer-status');
+    const beamerPeerIdFromURL = window.location.hash.substring(1);
+    const beamerIsReceiver = beamerPeerIdFromURL.length > 0;
+    const BEAMER_CHUNK_SIZE = 64 * 1024; 
+
+    // UI Elements for Progress
+    const beamerProgressWrapper = document.getElementById('beamer-progress-wrapper');
+    const beamerProgressBar = document.getElementById('beamer-progress-bar');
+    const beamerProgressText = document.getElementById('beamer-progress-text');
+
+    // Auto-open modal if hash exists (Receiver)
+    if (beamerIsReceiver) {
+        beamerModal.style.display = 'flex';
+    }
+
+    beamerPeer.on('open', (id) => {
+      if (beamerIsReceiver) initBeamerReceiver(beamerPeerIdFromURL);
+      else initBeamerSender(id);
+    });
+
+    beamerPeer.on('error', (err) => {
+      beamerStatusEl.innerText = "Connection Error: " + err.type;
+      beamerStatusEl.style.color = "red";
+    });
+
+    function updateBeamerProgress(current, total) {
+      beamerProgressWrapper.style.display = 'block';
+      const percent = Math.round((current / total) * 100);
+      beamerProgressBar.style.width = percent + '%';
+      beamerProgressText.innerText = `${percent}% (${(current / 1024 / 1024).toFixed(2)} MB / ${(total / 1024 / 1024).toFixed(2)} MB)`;
+    }
+
+    // --- BEAMER SENDER LOGIC ---
+    function initBeamerSender(myId) {
+      document.getElementById('beamer-sender-ui').classList.remove('hidden');
+      beamerStatusEl.innerText = "Configure your secure sharing link.";
+      beamerStatusEl.style.color = "var(--text-main)";
+
+      const fileInput = document.getElementById('beamer-file-input');
+      const passInput = document.getElementById('beamer-password-input');
+      const expSelect = document.getElementById('beamer-expiration-select');
+      const dateInput = document.getElementById('beamer-datetime-input');
+      const generateBtn = document.getElementById('beamer-generate-btn');
+
+      let fileToSend = null;
+      let secureConfig = {};
+      let totalDownloads = 0;
+
+      // Toggle Date Input visibility
+      expSelect.addEventListener('change', (e) => {
+        if (e.target.value === 'date') document.getElementById('beamer-datetime-group').classList.remove('hidden');
+        else document.getElementById('beamer-datetime-group').classList.add('hidden');
+      });
+
+      generateBtn.addEventListener('click', () => {
+        fileToSend = fileInput.files[0];
+        if (!fileToSend) return alert("Please select a file first.");
+
+        secureConfig = {
+          password: passInput.value,
+          mode: expSelect.value,
+          expireDate: expSelect.value === 'date' ? new Date(dateInput.value) : null
+        };
+
+        const shareURL = window.location.href.split('#')[0] + '#' + myId;
+        document.getElementById('beamer-share-link').innerText = shareURL;
+        document.getElementById('beamer-share-link-container').style.display = 'block';
+        beamerStatusEl.innerText = "Link generated. Waiting for receiver...";
+        beamerStatusEl.style.color = "var(--accent-orange)";
+        generateBtn.disabled = true;
+      });
+
+      beamerPeer.on('connection', (conn) => {
+        conn.on('open', () => {
+          // 1. Check Expiration Criteria
+          if (secureConfig.mode === 'once' && totalDownloads >= 1) {
+            conn.send({ error: 'This link was a burn-after-reading link and has already been used.' });
+            return setTimeout(() => conn.close(), 500);
+          }
+          if (secureConfig.mode === 'date' && new Date() > secureConfig.expireDate) {
+            conn.send({ error: 'This link has expired based on the sender\'s time limit.' });
+            return setTimeout(() => conn.close(), 500);
+          }
+
+          // 2. Send Handshake to demand password (if set)
+          conn.send({ type: 'handshake', requireAuth: secureConfig.password.length > 0 });
+        });
+
+        let offset = 0;
+
+        conn.on('data', (data) => {
+          // 3. Verify Password
+          if (data.type === 'auth') {
+            if (secureConfig.password && data.password !== secureConfig.password) {
+              conn.send({ error: 'Incorrect password. Access denied.' });
+              return setTimeout(() => conn.close(), 500);
+            }
+            beamerStatusEl.innerText = "Receiver authenticated. Sending file...";
+            beamerStatusEl.style.color = "var(--accent-teal)";
+            conn.send({ type: 'metadata', name: fileToSend.name, mime: fileToSend.type, size: fileToSend.size });
+          }
+
+          // 4. Handle Chunking (ACKs)
+          if (data.type === 'ack') {
+            if (offset < fileToSend.size) {
+              const slice = fileToSend.slice(offset, offset + BEAMER_CHUNK_SIZE);
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                conn.send({ type: 'chunk', data: e.target.result });
+                offset += BEAMER_CHUNK_SIZE;
+                updateBeamerProgress(Math.min(offset, fileToSend.size), fileToSend.size);
+              };
+              reader.readAsArrayBuffer(slice);
+            } else {
+              conn.send({ type: 'eof' });
+              beamerStatusEl.innerText = "Transfer Complete!";
+              beamerStatusEl.style.color = "green";
+              totalDownloads++;
+              offset = 0; 
+              
+              // Disconnect peer entirely if burn after reading is enabled
+              if (secureConfig.mode === 'once') {
+                 setTimeout(() => beamerPeer.destroy(), 1000);
+                 beamerStatusEl.innerText = "Transfer Complete! Link burned.";
+              }
+            }
+          }
+        });
+      });
+    }
+
+    // --- BEAMER RECEIVER LOGIC ---
+    function initBeamerReceiver(senderId) {
+      document.getElementById('beamer-receiver-ui').classList.remove('hidden');
+      beamerStatusEl.innerText = "Connecting to sender...";
+
+      const conn = beamerPeer.connect(senderId);
+      let incomingFileInfo = null;
+      let receivedBuffers = [];
+      let receivedSize = 0;
+
+      conn.on('data', (data) => {
+        if (data.error) {
+          beamerStatusEl.innerText = data.error;
+          beamerStatusEl.style.color = "red";
+          return;
+        }
+
+        // 1. Respond to Handshake (Password Prompt)
+        if (data.type === 'handshake') {
+          if (data.requireAuth) {
+            const pwd = prompt("The sender requires a password to download this file:");
+            conn.send({ type: 'auth', password: pwd || '' });
+          } else {
+            conn.send({ type: 'auth', password: '' });
+          }
+        }
+
+        // 2. Receive Metadata
+        if (data.type === 'metadata') {
+          incomingFileInfo = data;
+          beamerStatusEl.innerText = `Receiving: ${data.name}...`;
+          conn.send({ type: 'ack' }); 
+        }
+
+        // 3. Receive Chunks
+        if (data.type === 'chunk') {
+          receivedBuffers.push(data.data);
+          receivedSize += data.data.byteLength;
+          updateBeamerProgress(receivedSize, incomingFileInfo.size);
+          conn.send({ type: 'ack' }); 
+        }
+
+        // 4. Assembly on EOF
+        if (data.type === 'eof') {
+          beamerStatusEl.innerText = "File verified and assembled!";
+          beamerStatusEl.style.color = "green";
+
+          const finalBlob = new Blob(receivedBuffers, { type: incomingFileInfo.mime });
+          const blobUrl = URL.createObjectURL(finalBlob);
+          
+          const downloadBtn = document.getElementById('beamer-download-btn');
+          downloadBtn.href = blobUrl;
+          downloadBtn.download = incomingFileInfo.name;
+          document.getElementById('beamer-download-container').classList.remove('hidden');
+          receivedBuffers = []; 
+        }
+      });
+
+      conn.on('close', () => {
+         if(receivedSize < (incomingFileInfo?.size || 1)) {
+            beamerStatusEl.innerText = "Connection closed by sender or link expired.";
+            beamerStatusEl.style.color = "red";
+         }
+      });
+    }
+
+
+    // ==========================================================
     // --- Core VCard to CSV Logic ---
+    // ==========================================================
     const vcardDropZone = document.getElementById('vcard-drop-zone');
     const vcardFileInput = document.getElementById('vcard-file-input');
     const vcardSelectBtn = document.getElementById('vcard-select-btn');
@@ -594,7 +879,6 @@
     });
 
     function convertVcardToCSV(vcardText) {
-        // 1. Unfold lines (vCard allows multi-line property values with leading spaces/tabs)
         let unfoldedLines = [];
         const lines = vcardText.split(/\r?\n/);
         for (let i = 0; i < lines.length; i++) {
@@ -608,7 +892,6 @@
             }
         }
 
-        // Deep String Parsers to handle vcard internal escaped semicolons cleanly
         function parseVcardArray(value) {
             const parts = [];
             let current = '';
@@ -636,20 +919,19 @@
 
         function cleanKey(rawKey) {
             let key = rawKey.toUpperCase();
-            key = key.replace(/^ITEM\d+\./, ''); // remove item1., item2., etc
+            key = key.replace(/^ITEM\d+\./, '');
             
             let parts = key.split(';');
             let base = parts[0];
             
             if (base === 'FN') return 'Display Name';
-            if (base === 'N') return 'N'; // Handle Name parsing separately
+            if (base === 'N') return 'N';
             if (base === 'ORG') return 'Company';
             if (base === 'TITLE') return 'Job Title';
             if (base === 'NOTE') return 'Notes';
             if (base === 'BDAY') return 'Birthday';
-            if (base === 'VERSION' || base === 'PRODID') return null; // Hide noise fields
+            if (base === 'VERSION' || base === 'PRODID') return null;
             
-            // Map nice Types for headers (e.g. CELL -> Cell)
             let types = parts.slice(1).map(p => {
                 let kv = p.split('=');
                 let val = kv.length > 1 ? kv[1] : kv[0];
@@ -669,11 +951,9 @@
             if (base === 'IMPP' || base === 'X-SOCIALPROFILE') return `Social Profile${typeStr}`;
             if (base === 'PHOTO') return `Photo`;
             
-            // Generic fallback format for unknown custom tags
             return base.charAt(0) + base.slice(1).toLowerCase() + typeStr;
         }
 
-        // 2. Parse into contact objects
         let contacts = [];
         let currentContact = null;
 
@@ -695,7 +975,6 @@
                     let key = cleanKey(rawKey);
                     if (!key) return; 
 
-                    // Intelligently parse raw N (Name) variables to split the string and strip out the semicolons
                     if (key === 'N') {
                         const parts = parseVcardArray(value);
                         if (parts[1]) currentContact['First Name'] = parts[1];
@@ -706,7 +985,6 @@
                         return;
                     }
                     
-                    // Cleanup addresses and companies by replacing semicolons with nice formatting
                     if (key.startsWith('Address')) {
                         const parts = parseVcardArray(value);
                         value = parts.filter(p => p !== '').join(', ');
@@ -717,7 +995,6 @@
                         value = unescapeVcardValue(value);
                     }
 
-                    // Aggregate multiple entries of same key type using a pipe separator
                     if (currentContact[key]) {
                         if (!currentContact[key].includes(value)) {
                             currentContact[key] += " | " + value;
@@ -729,7 +1006,6 @@
             }
         });
 
-        // 3. Apply Email Filter
         const emailFilterChecked = document.getElementById('vcard-email-filter-chk').checked;
         if (emailFilterChecked) {
             contacts = contacts.filter(contact => {
@@ -743,7 +1019,6 @@
             return;
         }
 
-        // 4. Extract unique keys and sort them so they are readable in the output
         let keySet = new Set();
         contacts.forEach(contact => {
             Object.keys(contact).forEach(k => keySet.add(k));
@@ -761,7 +1036,6 @@
             });
         }
 
-        // Determine column priorities
         const namePriority = ['First Name', 'Middle Name', 'Last Name', 'Prefix', 'Suffix', 'Display Name'];
         const corpPriority = ['Company', 'Job Title', 'Department'];
         const emailKeys = allKeys.filter(k => k.toLowerCase().includes('email')).sort();
@@ -774,18 +1048,16 @@
         pushCategorizedKeys(phoneKeys);
         pushCategorizedKeys(addressKeys);
         
-        // Push any remaining uncategorized auxiliary attributes to the back
         sortedKeys.push(...allKeys.sort());
         allKeys = sortedKeys;
 
-        // 5. Build the output text construct
         const delimiter = document.getElementById('vcard-delimiter').value;
         const includeHeaders = document.getElementById('vcard-headers-chk').checked;
         
         function escapeCSVValue(val) {
             if (val === undefined || val === null) return '""';
             let str = String(val);
-            str = str.replace(/"/g, '""'); // Escape double quotes
+            str = str.replace(/"/g, '""');
             return `"${str}"`;
         }
 
@@ -800,7 +1072,6 @@
             csvString += row + "\r\n";
         });
 
-        // 6. Download Output File
         const blob = new Blob(["\ufeff" + csvString], { type: 'text/csv;charset=utf-8;' });
         const originalName = activeVcardFile.name.replace(/\.[^/.]+$/, "");
         triggerDownload(blob, `${originalName}_converted.csv`);
@@ -810,7 +1081,9 @@
     }
 
 
+    // ==========================================================
     // --- Core Image Resizer Script Logic ---
+    // ==========================================================
     const dropZone = document.getElementById('drop-zone');
     const fileInput = document.getElementById('file-input');
     const selectBtn = document.getElementById('select-btn');
