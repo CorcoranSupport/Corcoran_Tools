@@ -6,6 +6,10 @@
     <title>Corcoran Tools Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/heic2any/0.0.4/heic2any.min.js"></script>
+    
+    <link rel="stylesheet" href="./assets/index-CrDz3bot.css">
+    <script type="module" src="./assets/index-Dp-GlWbG.js"></script>
+
     <style>
         :root {
             --bg-primary: #f8fafc;
@@ -305,8 +309,10 @@
             width: 100%;
             height: 100%;
             border-radius: 8px;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
             border: 1px solid var(--border-color);
+            background-color: #F8F9FA;
         }
 
         iframe {
@@ -548,12 +554,11 @@
     <div class="modal-container-xl">
         <button class="close-modal" id="close-iframe-btn">&times;</button>
         <div class="iframe-wrapper">
-            <iframe src="https://www.homecontactconverter.com/" title="Home Platform CSV Tool"></iframe>
+            <div id="root"></div>
         </div>
     </div>
 </div>
 
-<!-- Merged Advanced VCard Modal -->
 <div class="modal-overlay" id="vcard-modal">
     <div class="modal-container-large">
         <button class="close-modal" id="close-vcard-btn">&times;</button>
