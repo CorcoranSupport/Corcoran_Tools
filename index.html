@@ -123,7 +123,7 @@
             font-size: 16px;
         }
 
-        /* --- Search Bar Styles (Flexbox Fix) --- */
+        /* --- Search Bar Styles --- */
         .search-container {
             display: flex;
             align-items: center;
@@ -276,6 +276,20 @@
 
         .modal-container-large {
             background: white;
+            padding: 45px 30px 30px 30px;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            width: 92%;
+            max-width: 1000px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            animation: fadeIn 0.25s ease-out;
+            box-sizing: border-box;
+        }
+
+        .modal-container-xl {
+            background: white;
             padding: 45px 20px 20px 20px;
             border-radius: 16px;
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
@@ -337,6 +351,11 @@
             background-color: #eff6ff;
             color: #1e40af;
         }
+        #vcard-drop-zone.hover {
+            border-color: var(--accent-teal);
+            background-color: #f0fdfa;
+            color: #0f766e;
+        }
         .btn {
             display: block;
             width: 100%;
@@ -352,12 +371,13 @@
             margin-bottom: 20px;
             box-sizing: border-box;
             text-decoration: none;
+            transition: opacity 0.2s;
         }
         .btn.btn-teal { background-color: var(--accent-teal); }
-        .btn.btn-teal:hover { background-color: #0f766e; }
+        .btn.btn-teal:hover { opacity: 0.9; }
         .btn.btn-orange { background-color: var(--accent-orange); }
-        .btn.btn-orange:hover { background-color: #c2410c; }
-        .btn:hover { background-color: #1d4ed8; }
+        .btn.btn-orange:hover { opacity: 0.9; }
+        .btn:hover { opacity: 0.9; }
         .btn:disabled { background-color: #cbd5e1; cursor: not-allowed; }
         
         .folder-section, .form-group {
@@ -398,6 +418,15 @@
         }
         .hidden { display: none !important; }
 
+        /* VCard Preview Table Styles */
+        .table-container { max-height: 400px; overflow: auto; border-radius: 8px; border: 1px solid var(--border-color); background: white; margin-bottom: 20px; }
+        #vcard-preview-table { width: 100%; border-collapse: collapse; }
+        #vcard-preview-table th, #vcard-preview-table td { padding: 10px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 13px; white-space: nowrap; }
+        #vcard-preview-table th { background: #f8fafc; color: var(--text-muted); font-weight: 600; position: sticky; top: 0; }
+        #vcard-preview-table tr:hover td { background: #f1f5f9; }
+        #vcard-preview-table td { color: var(--text-main); max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+        .empty-cell { color: #cbd5e1; font-style: italic; }
+
         @media (max-width: 768px) {
             .header {
                 display: flex;
@@ -421,7 +450,7 @@
             .tool-grid {
                 grid-template-columns: 1fr;
             }
-            .modal-container {
+            .modal-container, .modal-container-large {
                 width: 90%;
                 padding: 20px;
             }
@@ -516,7 +545,7 @@
 </div>
 
 <div class="modal-overlay" id="iframe-modal">
-    <div class="modal-container-large">
+    <div class="modal-container-xl">
         <button class="close-modal" id="close-iframe-btn">&times;</button>
         <div class="iframe-wrapper">
             <iframe src="https://www.homecontactconverter.com/" title="Home Platform CSV Tool"></iframe>
@@ -524,41 +553,53 @@
     </div>
 </div>
 
+<!-- Merged Advanced VCard Modal -->
 <div class="modal-overlay" id="vcard-modal">
-    <div class="modal-container">
+    <div class="modal-container-large">
         <button class="close-modal" id="close-vcard-btn">&times;</button>
-        <h2 style="margin-top:0; font-size: 20px; color: var(--text-main);">VCard to CSV Converter</h2>
+        <h2 style="margin-top:0; font-size: 24px; color: var(--text-main);">VCard to CSV Converter</h2>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">Drag & drop your .vcf file to preview and convert.</p>
         
         <div id="vcard-drop-zone">
+            <div style="font-size: 32px; margin-bottom: 10px;">📇</div>
             DRAG & DROP .VCF FILE HERE<br><br>
-            <span style="font-size: 13px; font-weight: normal; color: var(--text-muted);">(Supports any standard vCard file)</span>
+            <span style="font-size: 13px; font-weight: normal; color: var(--text-muted);">or click to browse local files</span>
+            <div id="vcard-file-info" style="display: none; margin-top: 15px; color: var(--accent-teal); font-weight: bold;"></div>
         </div>
 
-        <input type="file" id="vcard-file-input" accept=".vcf,text/vcard" style="display: none;">
-        <button class="btn btn-teal" id="vcard-select-btn">SELECT VCARD FILE</button>
+        <input type="file" id="vcard-file-input" accept=".vcf,.vcard" style="display: none;">
 
-        <div class="form-group" style="margin-bottom: 15px;">
-            <label>Output Delimiter / Format:</label>
-            <select id="vcard-delimiter">
-                <option value=",">Comma (,)</option>
-                <option value=";">Semicolon (;)</option>
-                <option value="&#9;">Tab</option>
-            </select>
-        </div>
-
-        <div class="form-group" style="margin-bottom: 25px;">
+        <div class="form-group" style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; justify-content: center;">
             <label class="checkbox-label">
-                <input type="checkbox" id="vcard-headers-chk" checked>
-                Add CSV column headers row (Name, etc.)
+                <input type="checkbox" id="vcard-flatten-chk" checked>
+                Flatten structured fields (N, ADR, ORG)
             </label>
             <label class="checkbox-label">
-                <input type="checkbox" id="vcard-email-filter-chk">
-                Filter: Only include contacts with email addresses
+                <input type="checkbox" id="vcard-custom-chk" checked>
+                Include custom/X- fields
             </label>
         </div>
 
-        <button class="btn btn-teal" id="vcard-convert-btn" disabled>CONVERT & DOWNLOAD</button>
-        <div id="vcard-status">Ready. Select a .vcf file to begin.</div>
+        <div id="vcard-preview-section" style="display: none; margin-top: 25px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+                <h3 style="margin: 0; font-size: 18px; color: var(--text-main);">Data Preview</h3>
+                <div>
+                    <span id="vcard-contact-count" style="background: var(--accent-teal); color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;">0 contacts</span>
+                    <span id="vcard-field-count" style="background: var(--border-color); color: var(--text-main); padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; margin-left: 5px;">0 fields</span>
+                </div>
+            </div>
+            <div class="table-container">
+                <table id="vcard-preview-table">
+                    <thead><tr id="vcard-table-header"></tr></thead>
+                    <tbody id="vcard-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <button class="btn btn-teal" id="vcard-convert-btn" disabled>Convert to CSV</button>
+        <button class="btn btn-teal" id="vcard-download-btn" style="display: none;">Download CSV</button>
+        
+        <div id="vcard-status">Ready. Select a .vcf or .vcard file to begin.</div>
     </div>
 </div>
 
@@ -593,6 +634,7 @@
         }
     });
 
+
     // --- Modals Layout Configuration Map ---
     const resizerModal = document.getElementById('resizer-modal');
     const iframeModal = document.getElementById('iframe-modal');
@@ -617,274 +659,308 @@
     closeIframeBtn.addEventListener('click', () => iframeModal.style.display = 'none');
     closeVcardBtn.addEventListener('click', () => {
         vcardModal.style.display = 'none';
-        vcardFileInput.value = '';
-        activeVcardFile = null;
-        vcardConvertBtn.disabled = true;
-        document.getElementById('vcard-status').innerText = 'Ready. Select a .vcf file to begin.';
+        
+        // Reset the advanced VCard UI when closed
+        document.getElementById('vcard-file-input').value = '';
+        parsedContacts = [];
+        document.getElementById('vcard-preview-section').style.display = 'none';
+        document.getElementById('vcard-file-info').style.display = 'none';
+        document.getElementById('vcard-convert-btn').disabled = true;
+        document.getElementById('vcard-convert-btn').style.display = 'block';
+        document.getElementById('vcard-download-btn').style.display = 'none';
+        const vStatus = document.getElementById('vcard-status');
+        vStatus.innerText = 'Ready. Select a .vcf or .vcard file to begin.';
+        vStatus.style.color = 'var(--text-muted)';
     });
 
     // Backdrop overlay universal escape close engine
     window.addEventListener('click', (e) => {
         if (e.target === resizerModal) resizerModal.style.display = 'none';
         if (e.target === iframeModal) iframeModal.style.display = 'none';
-        if (e.target === vcardModal) vcardModal.style.display = 'none';
+        if (e.target === vcardModal) closeVcardBtn.click();
     });
 
 
     // ==========================================================
-    // --- Core VCard to CSV Logic ---
+    // --- Core VCard to CSV Logic (Advanced Merge) ---
     // ==========================================================
     const vcardDropZone = document.getElementById('vcard-drop-zone');
     const vcardFileInput = document.getElementById('vcard-file-input');
-    const vcardSelectBtn = document.getElementById('vcard-select-btn');
+    const vcardFileInfo = document.getElementById('vcard-file-info');
+    const vcardFlattenChk = document.getElementById('vcard-flatten-chk');
+    const vcardCustomChk = document.getElementById('vcard-custom-chk');
     const vcardConvertBtn = document.getElementById('vcard-convert-btn');
+    const vcardDownloadBtn = document.getElementById('vcard-download-btn');
+    const vcardPreviewSection = document.getElementById('vcard-preview-section');
+    const vcardContactCount = document.getElementById('vcard-contact-count');
+    const vcardFieldCount = document.getElementById('vcard-field-count');
+    const vcardTableHeader = document.getElementById('vcard-table-header');
+    const vcardTableBody = document.getElementById('vcard-table-body');
     const vcardStatus = document.getElementById('vcard-status');
-    let activeVcardFile = null;
 
-    vcardSelectBtn.addEventListener('click', () => vcardFileInput.click());
-    vcardDropZone.addEventListener('click', () => vcardFileInput.click());
+    let parsedContacts = [];
+    let csvData = '';
 
+    const getVCardOptions = () => ({
+        flattenStructured: vcardFlattenChk.checked,
+        includeCustom: vcardCustomChk.checked
+    });
+
+    // --- Parser Engine ---
+    function parseVCard(vcardText) {
+        const contacts = [];
+        const lines = vcardText.split(/\r?\n/);
+        let currentContact = null;
+        let currentProperty = null;
+        let currentValue = '';
+        let inMultiline = false;
+
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i];
+
+            if (inMultiline && (line.startsWith(' ') || line.startsWith('\t'))) {
+                currentValue += '\n' + line.substring(1);
+                continue;
+            } else if (inMultiline) {
+                if (currentContact && currentProperty) {
+                    addPropertyValue(currentContact, currentProperty, currentValue);
+                }
+                inMultiline = false;
+                currentProperty = null;
+                currentValue = '';
+            }
+
+            if (line === 'BEGIN:VCARD') {
+                currentContact = {};
+            } else if (line === 'END:VCARD') {
+                if (currentContact) {
+                    contacts.push(currentContact);
+                }
+                currentContact = null;
+            } else if (currentContact && line.includes(':')) {
+                const colonIndex = line.indexOf(':');
+                const propLine = line.substring(0, colonIndex);
+                const value = line.substring(colonIndex + 1);
+                const propName = propLine.split(';')[0].toUpperCase();
+
+                currentProperty = propName;
+                currentValue = value;
+
+                if (i + 1 < lines.length && (lines[i + 1].startsWith(' ') || lines[i + 1].startsWith('\t'))) {
+                    inMultiline = true;
+                } else {
+                    addPropertyValue(currentContact, currentProperty, currentValue);
+                    currentProperty = null;
+                    currentValue = '';
+                }
+            }
+        }
+        return contacts;
+    }
+
+    function addPropertyValue(contact, propName, value) {
+        value = value.replace(/\\,/g, ',').replace(/\\;/g, ';').replace(/\\n/g, '\n').replace(/\\:/g, ':').replace(/\\\\/g, '\\');
+        if (!contact[propName]) contact[propName] = [];
+        contact[propName].push(value);
+    }
+
+    function flattenContact(contact, options) {
+        const flat = {};
+        const flattenStructured = options.flattenStructured;
+        const includeCustom = options.includeCustom;
+
+        const addField = (key, value) => {
+            if (value === null || value === undefined || value === '') return;
+            if (flat[key]) flat[key] = flat[key] + '; ' + value;
+            else flat[key] = value;
+        };
+
+        Object.keys(contact).forEach(propName => {
+            const values = contact[propName];
+            if (!Array.isArray(values)) return;
+            if (!includeCustom && propName.startsWith('X-')) return;
+
+            if (flattenStructured && ['N', 'ADR', 'ORG'].includes(propName)) {
+                values.forEach((v, idx) => {
+                    const parts = v.split(';').map(p => p.trim());
+                    if (propName === 'N') {
+                        const labels = ['Family Name', 'Given Name', 'Middle Name', 'Name Prefix', 'Name Suffix'];
+                        parts.forEach((part, pi) => { if (part) addField(`${labels[pi]}`, part); });
+                    } else if (propName === 'ADR') {
+                        const labels = ['PO Box', 'Extended Address', 'Street', 'City', 'Region', 'Postal Code', 'Country'];
+                        parts.forEach((part, pi) => { if (part) addField(`Address ${labels[pi]}`, part); });
+                    } else if (propName === 'ORG') {
+                        const labels = ['Organization', 'Department', 'Title'];
+                        parts.forEach((part, pi) => { if (part) addField(`${labels[pi]}`, part); });
+                    }
+                });
+            } else if (propName === 'TEL') {
+                values.forEach(v => addField('Phone', v));
+            } else if (propName === 'EMAIL') {
+                values.forEach(v => addField('Email', v));
+            } else if (propName === 'ADR' && !flattenStructured) {
+                values.forEach(v => addField('Address', v));
+            } else if (propName === 'PHOTO' || propName === 'LOGO' || propName === 'SOUND' || propName === 'KEY') {
+                values.forEach(() => addField(propName, 'Yes (binary data)'));
+            } else {
+                values.forEach(v => addField(propName, v));
+            }
+        });
+        return flat;
+    }
+
+    function contactsToCSV(contacts, options) {
+        if (contacts.length === 0) return '';
+        const flatContacts = contacts.map(c => flattenContact(c, options));
+        const headers = new Set();
+        flatContacts.forEach(c => Object.keys(c).forEach(k => headers.add(k)));
+
+        const priorityOrder = [
+            'FN', 'Family Name', 'Given Name', 'Middle Name', 'Name Prefix', 'Name Suffix',
+            'NICKNAME', 'PHOTO', 'BDAY', 'ANNIVERSARY', 'GENDER',
+            'Address PO Box', 'Address Extended Address', 'Address Street', 'Address City', 'Address Region', 'Address Postal Code', 'Address Country',
+            'Phone', 'Email',
+            'Organization', 'Department', 'Title',
+            'TITLE', 'ROLE', 'URL', 'NOTE', 'CATEGORIES', 'PRODID', 'REV', 'UID', 'KEY', 'LOGO', 'SOUND', 'FBURL', 'CALADRURI', 'CALURI', 'XML', 'CLIENTPIDMAP'
+        ];
+
+        const sortedHeaders = [...headers].sort((a, b) => {
+            const ai = priorityOrder.indexOf(a);
+            const bi = priorityOrder.indexOf(b);
+            if (ai !== -1 && bi !== -1) return ai - bi;
+            if (ai !== -1) return -1;
+            if (bi !== -1) return 1;
+            return a.localeCompare(b);
+        });
+
+        const escapeCSV = (val) => {
+            if (val === null || val === undefined) return '';
+            const str = String(val);
+            if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+                return '"' + str.replace(/"/g, '""') + '"';
+            }
+            return str;
+        };
+
+        const rows = [sortedHeaders.map(escapeCSV).join(',')];
+        flatContacts.forEach(contact => {
+            rows.push(sortedHeaders.map(h => escapeCSV(contact[h])).join(','));
+        });
+
+        return rows.join('\n');
+    }
+
+    function generatePreviewTable(contacts, options) {
+        if (contacts.length === 0) return;
+        const flatContacts = contacts.map(c => flattenContact(c, options));
+        const headers = new Set();
+        flatContacts.forEach(c => Object.keys(c).forEach(k => headers.add(k)));
+
+        const priorityOrder = [
+            'FN', 'Family Name', 'Given Name', 'Middle Name', 'Name Prefix', 'Name Suffix',
+            'NICKNAME', 'PHOTO', 'BDAY', 'ANNIVERSARY', 'GENDER',
+            'Address PO Box', 'Address Extended Address', 'Address Street', 'Address City', 'Address Region', 'Address Postal Code', 'Address Country',
+            'Phone', 'Email',
+            'Organization', 'Department', 'Title',
+            'TITLE', 'ROLE', 'URL', 'NOTE', 'CATEGORIES', 'PRODID', 'REV', 'UID', 'X-'
+        ];
+
+        const sortedHeaders = [...headers].sort((a, b) => {
+            const ai = priorityOrder.findIndex(p => a === p || a.startsWith(p + '_') || a.startsWith(p));
+            const bi = priorityOrder.findIndex(p => b === p || b.startsWith(p + '_') || b.startsWith(p));
+            if (ai !== -1 && bi !== -1) return ai - bi;
+            if (ai !== -1) return -1;
+            if (bi !== -1) return 1;
+            return a.localeCompare(b);
+        });
+
+        vcardTableHeader.innerHTML = sortedHeaders.map(h => `<th title="${h}">${h}</th>`).join('');
+        vcardTableBody.innerHTML = flatContacts.slice(0, 20).map(contact => {
+            return '<tr>' + sortedHeaders.map(h => {
+                const val = contact[h];
+                return `<td title="${val ? String(val).replace(/"/g, '&quot;') : ''}">${val ? val : '<span class="empty-cell">—</span>'}</td>`;
+            }).join('') + '</tr>';
+        }).join('');
+
+        vcardFieldCount.textContent = `${sortedHeaders.length} fields`;
+    }
+
+    // --- Interaction Handlers ---
     vcardDropZone.addEventListener('dragover', (e) => { e.preventDefault(); vcardDropZone.classList.add('hover'); });
     vcardDropZone.addEventListener('dragleave', () => vcardDropZone.classList.remove('hover'));
     vcardDropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        vcardDropZone.classList.remove('hover');
-        if (e.dataTransfer.files.length > 0) processVcardFileSelection(e.dataTransfer.files[0]);
+        e.preventDefault(); vcardDropZone.classList.remove('hover');
+        if (e.dataTransfer.files.length > 0) handleVCardFiles(e.dataTransfer.files);
+    });
+    vcardDropZone.addEventListener('click', () => vcardFileInput.click());
+    vcardFileInput.addEventListener('change', (e) => { if (e.target.files.length > 0) handleVCardFiles(e.target.files); });
+
+    [vcardFlattenChk, vcardCustomChk].forEach(el => {
+        el.addEventListener('change', () => {
+            if (parsedContacts.length > 0) {
+                generatePreviewTable(parsedContacts, getVCardOptions());
+                csvData = contactsToCSV(parsedContacts, getVCardOptions());
+            }
+        });
     });
 
-    vcardFileInput.addEventListener('change', (e) => {
-        if (e.target.files.length > 0) processVcardFileSelection(e.target.files[0]);
-    });
-
-    function processVcardFileSelection(file) {
-        if (!file.name.toLowerCase().endsWith('.vcf') && file.type !== 'text/vcard') {
-            vcardStatus.innerText = "Error: Please select a valid .vcf file.";
+    function handleVCardFiles(files) {
+        const file = files[0];
+        if (!file.name.toLowerCase().endsWith('.vcf') && !file.name.toLowerCase().endsWith('.vcard') && file.type !== 'text/vcard') {
+            vcardStatus.innerText = 'Error: Please select a valid .vcf or .vcard file.';
+            vcardStatus.style.color = "red";
             return;
         }
-        activeVcardFile = file;
-        vcardStatus.innerText = `Selected: ${file.name}\nReady to convert!`;
-        vcardConvertBtn.disabled = false;
-    }
 
-    vcardConvertBtn.addEventListener('click', () => {
-        if (!activeVcardFile) return;
-        vcardStatus.innerText = "Parsing VCard file...";
-        vcardConvertBtn.disabled = true;
+        vcardFileInfo.style.display = 'block';
+        vcardFileInfo.innerText = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+        vcardConvertBtn.disabled = false;
+        vcardConvertBtn.style.display = 'block';
+        vcardDownloadBtn.style.display = 'none';
+        vcardStatus.innerText = 'Parsing file framework...';
+        vcardStatus.style.color = "var(--text-muted)";
 
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
-                const content = e.target.result;
-                convertVcardToCSV(content);
+                parsedContacts = parseVCard(e.target.result);
+                if (parsedContacts.length === 0) {
+                    vcardStatus.innerText = 'No valid contacts found in the vCard file.';
+                    vcardStatus.style.color = "red";
+                    vcardConvertBtn.disabled = true;
+                    return;
+                }
+                vcardContactCount.textContent = `${parsedContacts.length} contact${parsedContacts.length !== 1 ? 's' : ''}`;
+                generatePreviewTable(parsedContacts, getVCardOptions());
+                vcardPreviewSection.style.display = 'block';
+                vcardStatus.innerText = `Successfully parsed ${parsedContacts.length} contact(s). Preview available above. Click 'Convert to CSV' to proceed.`;
+                vcardStatus.style.color = "var(--accent-teal)";
             } catch (err) {
-                vcardStatus.innerText = `Error parsing file: ${err.message}`;
-                vcardConvertBtn.disabled = false;
+                vcardStatus.innerText = 'Error parsing vCard: ' + err.message;
+                vcardStatus.style.color = "red";
+                vcardConvertBtn.disabled = true;
             }
         };
-        reader.readAsText(activeVcardFile);
+        reader.readAsText(file);
+    }
+
+    vcardConvertBtn.addEventListener('click', () => {
+        csvData = contactsToCSV(parsedContacts, getVCardOptions());
+        vcardConvertBtn.style.display = 'none';
+        vcardDownloadBtn.style.display = 'block';
+        vcardStatus.innerText = 'CSV generated successfully! Click Download to save locally.';
+        vcardStatus.style.color = "var(--accent-teal)";
     });
 
-    function convertVcardToCSV(vcardText) {
-        let unfoldedLines = [];
-        const lines = vcardText.split(/\r?\n/);
-        for (let i = 0; i < lines.length; i++) {
-            let line = lines[i];
-            if (line.startsWith(' ') || line.startsWith('\t')) {
-                if (unfoldedLines.length > 0) {
-                    unfoldedLines[unfoldedLines.length - 1] += line.substring(1);
-                }
-            } else {
-                unfoldedLines.push(line);
-            }
-        }
-
-        function parseVcardArray(value) {
-            const parts = [];
-            let current = '';
-            for (let i = 0; i < value.length; i++) {
-                if (value[i] === '\\' && value[i+1] === ';') { current += ';'; i++; } 
-                else if (value[i] === '\\' && value[i+1] === ',') { current += ','; i++; } 
-                else if (value[i] === '\\' && (value[i+1] === 'n' || value[i+1] === 'N')) { current += '\n'; i++; } 
-                else if (value[i] === ';') { parts.push(current.trim()); current = ''; } 
-                else { current += value[i]; }
-            }
-            parts.push(current.trim());
-            return parts;
-        }
-
-        function unescapeVcardValue(value) {
-            let current = '';
-            for (let i = 0; i < value.length; i++) {
-                if (value[i] === '\\' && value[i+1] === ';') { current += ';'; i++; } 
-                else if (value[i] === '\\' && value[i+1] === ',') { current += ','; i++; } 
-                else if (value[i] === '\\' && (value[i+1] === 'n' || value[i+1] === 'N')) { current += '\n'; i++; } 
-                else { current += value[i]; }
-            }
-            return current.trim();
-        }
-
-        function cleanKey(rawKey) {
-            let key = rawKey.toUpperCase();
-            key = key.replace(/^ITEM\d+\./, '');
-            
-            let parts = key.split(';');
-            let base = parts[0];
-            
-            if (base === 'FN') return 'Display Name';
-            if (base === 'N') return 'N';
-            if (base === 'ORG') return 'Company';
-            if (base === 'TITLE') return 'Job Title';
-            if (base === 'NOTE') return 'Notes';
-            if (base === 'BDAY') return 'Birthday';
-            if (base === 'VERSION' || base === 'PRODID') return null;
-            
-            let types = parts.slice(1).map(p => {
-                let kv = p.split('=');
-                let val = kv.length > 1 ? kv[1] : kv[0];
-                val = val.replace(/^X-/, ''); 
-                return val.charAt(0) + val.slice(1).toLowerCase(); 
-            }).filter(t => {
-                let tu = t.toUpperCase();
-                return tu !== 'PREF' && tu !== 'INTERNET' && tu !== 'VOICE' && tu !== 'ENCODING' && tu !== 'JPEG' && tu !== 'B';
-            });
-            
-            let typeStr = types.length > 0 ? ` (${types.join(', ')})` : '';
-            
-            if (base === 'TEL') return `Phone${typeStr}`;
-            if (base === 'EMAIL') return `Email${typeStr}`;
-            if (base === 'ADR') return `Address${typeStr}`;
-            if (base === 'URL') return `Website${typeStr}`;
-            if (base === 'IMPP' || base === 'X-SOCIALPROFILE') return `Social Profile${typeStr}`;
-            if (base === 'PHOTO') return `Photo`;
-            
-            return base.charAt(0) + base.slice(1).toLowerCase() + typeStr;
-        }
-
-        let contacts = [];
-        let currentContact = null;
-
-        unfoldedLines.forEach(line => {
-            if (line.trim() === '') return;
-            if (line.toUpperCase() === 'BEGIN:VCARD') {
-                currentContact = {};
-            } else if (line.toUpperCase() === 'END:VCARD') {
-                if (currentContact && Object.keys(currentContact).length > 0) {
-                    contacts.push(currentContact);
-                }
-                currentContact = null;
-            } else if (currentContact) {
-                const splitIndex = line.indexOf(':');
-                if (splitIndex > -1) {
-                    const rawKey = line.substring(0, splitIndex);
-                    let value = line.substring(splitIndex + 1);
-                    
-                    let key = cleanKey(rawKey);
-                    if (!key) return; 
-
-                    if (key === 'N') {
-                        const parts = parseVcardArray(value);
-                        if (parts[1]) currentContact['First Name'] = parts[1];
-                        if (parts[2]) currentContact['Middle Name'] = parts[2];
-                        if (parts[0]) currentContact['Last Name'] = parts[0];
-                        if (parts[3]) currentContact['Prefix'] = parts[3];
-                        if (parts[4]) currentContact['Suffix'] = parts[4];
-                        return;
-                    }
-                    
-                    if (key.startsWith('Address')) {
-                        const parts = parseVcardArray(value);
-                        value = parts.filter(p => p !== '').join(', ');
-                    } else if (key === 'Company') {
-                        const parts = parseVcardArray(value);
-                        value = parts.filter(p => p !== '').join(' - ');
-                    } else {
-                        value = unescapeVcardValue(value);
-                    }
-
-                    if (currentContact[key]) {
-                        if (!currentContact[key].includes(value)) {
-                            currentContact[key] += " | " + value;
-                        }
-                    } else {
-                        currentContact[key] = value;
-                    }
-                }
-            }
-        });
-
-        const emailFilterChecked = document.getElementById('vcard-email-filter-chk').checked;
-        if (emailFilterChecked) {
-            contacts = contacts.filter(contact => {
-                return Object.keys(contact).some(key => key.toLowerCase().includes('email'));
-            });
-        }
-
-        if (contacts.length === 0) {
-            vcardStatus.innerText = "No contacts matched the filter or the file was empty.";
-            vcardConvertBtn.disabled = false;
-            return;
-        }
-
-        let keySet = new Set();
-        contacts.forEach(contact => {
-            Object.keys(contact).forEach(k => keySet.add(k));
-        });
-        
-        let allKeys = Array.from(keySet);
-        const sortedKeys = [];
-
-        function pushCategorizedKeys(categoryList) {
-            categoryList.forEach(pk => {
-                if (allKeys.includes(pk)) {
-                    sortedKeys.push(pk);
-                    allKeys = allKeys.filter(k => k !== pk);
-                }
-            });
-        }
-
-        const namePriority = ['First Name', 'Middle Name', 'Last Name', 'Prefix', 'Suffix', 'Display Name'];
-        const corpPriority = ['Company', 'Job Title', 'Department'];
-        const emailKeys = allKeys.filter(k => k.toLowerCase().includes('email')).sort();
-        const phoneKeys = allKeys.filter(k => k.toLowerCase().includes('phone')).sort();
-        const addressKeys = allKeys.filter(k => k.toLowerCase().includes('address')).sort();
-
-        pushCategorizedKeys(namePriority);
-        pushCategorizedKeys(corpPriority);
-        pushCategorizedKeys(emailKeys);
-        pushCategorizedKeys(phoneKeys);
-        pushCategorizedKeys(addressKeys);
-        
-        sortedKeys.push(...allKeys.sort());
-        allKeys = sortedKeys;
-
-        const delimiter = document.getElementById('vcard-delimiter').value;
-        const includeHeaders = document.getElementById('vcard-headers-chk').checked;
-        
-        function escapeCSVValue(val) {
-            if (val === undefined || val === null) return '""';
-            let str = String(val);
-            str = str.replace(/"/g, '""');
-            return `"${str}"`;
-        }
-
-        let csvString = "";
-        
-        if (includeHeaders) {
-            csvString += allKeys.map(escapeCSVValue).join(delimiter) + "\r\n";
-        }
-
-        contacts.forEach(contact => {
-            let row = allKeys.map(k => escapeCSVValue(contact[k] || "")).join(delimiter);
-            csvString += row + "\r\n";
-        });
-
-        const blob = new Blob(["\ufeff" + csvString], { type: 'text/csv;charset=utf-8;' });
-        const originalName = activeVcardFile.name.replace(/\.[^/.]+$/, "");
-        triggerDownload(blob, `${originalName}_converted.csv`);
-
-        vcardStatus.innerText = `Success! Converted ${contacts.length} contacts containing ${allKeys.length} unique column fields.`;
-        vcardConvertBtn.disabled = false;
-    }
+    vcardDownloadBtn.addEventListener('click', () => {
+        const blob = new Blob(["\ufeff" + csvData], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'contacts_converted.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+    });
 
 
     // ==========================================================
